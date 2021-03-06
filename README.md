@@ -13,6 +13,7 @@ CONTENTS:
 - INDI driver and xml files
 
 INSTALLING:
+
 In a work directory of your choosing on the RPI 
 or (linux) system that the Power*Star is plugged into:
 
@@ -28,6 +29,7 @@ To compile from scratch:
 - sudo make install
 
 NOTES:
+
 - Initial configuration is set for a Unipolar motor, if you have a bipolar motor or not sure of your Unipolar, then do not connect it to your focus motor until after you set the motor type under the 'Options' tab.
 
 
