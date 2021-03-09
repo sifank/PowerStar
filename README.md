@@ -1,13 +1,11 @@
-# Power*Star-Focus
-INDI driver for Greg's Power*Star Focuser, also known as FeatherTouch Power*Star
-
-This is one of three INDI drivers (Focuser, Power, Weather)
+# Power*Star
+INDI driver for Wa_Chu_Ed Power*Star, also known as FeatherTouch Power*Star
 
 DEPENDENCIES:
-
 - sudo apt install build-essential devscripts debhelper fakeroot cdbs software-properties-common cmake pkg-config apt install libhidapi-hidraw0 libhidapi-libusb0
 - sudo add-apt-repository ppa:mutlaqja/ppa 
 - sudo apt install libindi-dev libnova-dev libz-dev libgsl-dev
+- I also found that the link /usr/lib/libindidriver.so points to nowhere!  So, remove it, use locate to find the most recent version and link to it: sudo ln -s /usr/lib/x86_64-linux-gnu/libindidriver.so.1.8.9 /usr/lib/libindidriver.so
 
 CONTENTS:
 - INDI driver and xml files
