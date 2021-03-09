@@ -15,16 +15,15 @@ INSTALLING:
 In a work directory of your choosing on the RPI 
 or (linux) system that the Power*Star is plugged into:
 
-git clone https://github.com/sifank/PowerStar.git
-
-Binary files for the Raspberry Pi are included:
-- cd [install path/]PowerStar
-- sudo make install
+git clone https://github.com/sifank/PowerStar.gitll
 
 To compile from scratch:
 - cd [install_path/]PowerStar
-- make clean; make
+- mkdir build; cd bulid
+- cmake ../
+- make
 - sudo make install
+- (Note: you will need to restart indiserver (or indiwebmanager)
 
 NOTES:
 
