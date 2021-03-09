@@ -5,7 +5,7 @@ This is one of three INDI drivers (Focuser, Power, Weather)
 
 DEPENDENCIES:
 
-- sudo apt install build-essential devscripts debhelper fakeroot cdbs software-properties-common cmake pkg-config 
+- sudo apt install build-essential devscripts debhelper fakeroot cdbs software-properties-common cmake pkg-config apt install libhidapi-hidraw0 libhidapi-libusb0
 - sudo add-apt-repository ppa:mutlaqja/ppa 
 - sudo apt install libindi-dev libnova-dev libz-dev libgsl-dev
 
