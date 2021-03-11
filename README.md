@@ -5,7 +5,14 @@ DEPENDENCIES:
 - sudo apt install build-essential devscripts debhelper fakeroot cdbs software-properties-common cmake pkg-config apt install libhidapi-hidraw0 libhidapi-libusb0
 - sudo add-apt-repository ppa:mutlaqja/ppa 
 - sudo apt install libindi-dev libnova-dev libz-dev libgsl-dev
-- I also found that the link /usr/lib/libindidriver.so points to nowhere!  So, remove it, use locate to find the most recent version and link to it: sudo ln -s /usr/lib/x86_64-linux-gnu/libindidriver.so.1.8.9 /usr/lib/libindidriver.so
+
+ISSUES:
+- Latest INDI release has an orphaned link:  /usr/lib/libindidriver.so points to nowhere!
+  - To fis: remove it, use 'locate libindidriver.so' to find the most recent version and create a link to it.
+  - Example: 
+    - locate libindidriver.so 
+    - sudo rm /usr/lib/libindidriver.so
+    - sudo ln -s /usr/lib/x86_64-linux-gnu/libindidriver.so   /usr/lib/libindidriver.so
 
 CONTENTS:
 - INDI driver and xml files
@@ -15,10 +22,8 @@ INSTALLING:
 In a work directory of your choosing on the RPI 
 or (linux) system that the Power*Star is plugged into:
 
-git clone https://github.com/sifank/PowerStar.gitll
-
-To compile from scratch:
-- cd [install_path/]PowerStar
+- git clone https://github.com/sifank/PowerStar.git
+- cd PowerStar
 - mkdir build; cd bulid
 - cmake ../
 - make
