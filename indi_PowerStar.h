@@ -7,11 +7,6 @@
 ***********************************************************************/
 #pragma once
 
-
-/* Define Driver version */
-#define VERSION_MAJOR 0
-#define VERSION_MINOR 7
-
 //#include <iostream>
 //#include <memory>
 //#include <map>

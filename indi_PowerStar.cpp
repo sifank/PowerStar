@@ -7,6 +7,7 @@ Requires:       PScontrol.cpp hidapi.c
 ***************************************************************************/
 
 #include "indi_PowerStar.h"
+#include "config.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -56,7 +57,7 @@ PSpower::PSpower() : FI(this), WI(this)
 {
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC);
     //setSupportedConnections(CONNECTION_NONE);
-    setVersion(VERSION_MAJOR, VERSION_MINOR);
+    setVersion(PS_VERSION_MAJOR, PS_VERSION_MINOR);
 }
 
 const char *PSpower::getDefaultName()
@@ -152,7 +153,7 @@ bool PSpower::initProperties()
     /***************/
     // Version
     char iversion[5];
-    snprintf(iversion, 4, "%i.%i", VERSION_MAJOR, VERSION_MINOR);
+    snprintf(iversion, 4, "%i.%i", PS_VERSION_MAJOR, PS_VERSION_MINOR);
     IUFillText(&FirmwareT[DRIVER_VERSION], "DRIVER", "Driver Version", iversion);
     uint16_t psversion = psctl.getVersion();
     char fversion[5];
@@ -1212,7 +1213,7 @@ IPState PSpower::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     targetAbsPosition = std::min(static_cast<uint32_t>(FocusMaxPosN[0].value),static_cast<uint32_t>(std::max(static_cast<int>(FocusAbsPosN[0].min), targetAbsPosition)));
 
-    return (IPState)psctl.MoveAbsFocuser(targetAbsPosition);
+    return MoveAbsFocuser(targetAbsPosition);
 }
 
 //************************************************************
@@ -1253,7 +1254,7 @@ uint32_t PSpower::checkFaults()
 {
     uint32_t faultstat = psctl.getFaultStatus(curProfile.faultMask);
     
-    faultstat = 0x00010004;
+    //faultstat = 0x00010004;  // this is for testing the fault system
     
     //Update faults field
     if (faultstat & 0xffff0000) {
