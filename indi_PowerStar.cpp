@@ -114,7 +114,7 @@ bool PSpower::Disconnect()
 bool PSpower::initProperties()
 {
     FI::initProperties(FOCUS_TAB);
-    WI::initProperties(ENVIRONMENT_TAB, ENVIRONMENT_TAB);
+    WI::initProperties(MAIN_CONTROL_TAB, ENVIRONMENT_TAB);
     
     setDriverInterface(AUX_INTERFACE | FOCUSER_INTERFACE);
     INDI::DefaultDevice::initProperties();
@@ -138,33 +138,31 @@ bool PSpower::initProperties()
                        "Power Status", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
     
     // Weather
+    /**
     IUFillNumber(&WEATHERN[TEMP], "OTA_TEMP", "Temperature", "%5.2f", 0, 0, 0, 55.5); 
     IUFillNumber(&WEATHERN[HUM], "OTA_HUM", "Humidity", "%5.2f", 0, 0, 0, 55.5);
     IUFillNumber(&WEATHERN[DP], "OTA_DP", "Dew Point", "%5.2f", 0, 0, 0, 55.5);
     IUFillNumber(&WEATHERN[DEP], "OTA_DEP", "DP Depression", "%5.2f", 0, 0, 0, 55.5);
     IUFillNumberVector(&WEATHERNP, WEATHERN, WEATHER_N, getDeviceName(), "WEATHER", "Weather", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    **/
     
     // Clear amp/watt fields
     IUFillSwitch(&PowerClearS[0], "SENSOR_CLEAR", "Clear", ISS_OFF);
     IUFillSwitchVector(&PowerClearSP, PowerClearS, 1, getDeviceName(), "Reset AmpHrs/Watts Field", "Power", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
     
     /***************/
-    /* FIRMWARE Tab  */
+    /* INFO Tab    */
     /***************/
-    // Version
-    char iversion[5];
-    snprintf(iversion, 4, "%i.%i", PS_VERSION_MAJOR, PS_VERSION_MINOR);
-    IUFillText(&FirmwareT[DRIVER_VERSION], "DRIVER", "Driver Version", iversion);
+    // PowerStar Firmware
     uint16_t psversion = psctl.getVersion();
     char fversion[5];
     snprintf(fversion, 4, "%i.%i", (psversion & 0xFF00) >> 8, psversion & 0xFF);
-    IUFillText(&FirmwareT[FIRMWARE_VERSION], "FIRMWARE", "Firmware Version", fversion);
-    IUFillTextVector(&FirmwareTP, FirmwareT, 2, getDeviceName(), "VERSION_INFO", "Version", FIRMWARE_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillText(&FirmwareT[FIRMWARE_VERSION], "FIRMWARE", "Firmware", fversion);
+    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "VERSION_INFO", "Power*Star", INFO_TAB, IP_RO, 60, IPS_IDLE);
     
     /***************/
     /* Options Tab */
     /***************/
-    /***
     //Autoboot
     IUFillSwitch(&AutoBootS[ABOUT1], "AB_PORT1", "Port1", ISS_OFF);
     IUFillSwitch(&AutoBootS[ABOUT2], "AB_PORT2", "Port2", ISS_OFF);
@@ -178,7 +176,6 @@ bool PSpower::initProperties()
     IUFillSwitch(&AutoBootS[ABUSB3], "AB_USB3", "Usb3", ISS_OFF);
     IUFillSwitch(&AutoBootS[ABUSB6], "AB_USB6", "Usb6", ISS_OFF);
     IUFillSwitchVector(&AutoBootSP, AutoBootS, AutoBoot_N, getDeviceName(), "AUTOBOOT_ENABLES", "Autoboot", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
-    **/
     
     // Variable port voltage setting
     IUFillNumber(&VarSettingN[0], "VAR_SETTING", "Volts", "%4.1f", 3, 10, 0.1, 0);
@@ -248,6 +245,15 @@ bool PSpower::initProperties()
     IUFillNumber(&PortCurrentN[MP], "CURRENT_MP", "Multipurpose Current", "%0.2f", 0, 0, 0, 0);
     IUFillNumberVector(&PortCurrentNP, PortCurrentN, POWER_N, getDeviceName(), "PORT_CURRENT", "Current", POWER_TAB, IP_RO, 0, IPS_IDLE);
     
+    //Port Labels
+    IUFillText(&PortLabelsT[OUT1], "PORTLABEL1", "Port1 Name", "Port1");
+    IUFillText(&PortLabelsT[OUT2], "PORTLABEL2", "Port2 Name", "Port2");
+    IUFillText(&PortLabelsT[OUT3], "PORTLABEL3", "Port3 Name", "Port3");
+    IUFillText(&PortLabelsT[OUT4], "PORTLABEL4", "Port4 Name", "Port4");
+    IUFillText(&PortLabelsT[VAR], "PORTLABELVAR", "Variable Name", "VAR");
+    IUFillText(&PortLabelsT[MP], "PORTLABELMP", "Multipurpose Name", "MP");
+    IUFillTextVector(&PortLabelsTP, PortLabelsT, POWER_N, getDeviceName(), "PORTLABELS", "Ports", POWER_TAB, IP_RW, 60, IPS_IDLE);
+    
     /***************/
     /* USB Tab     */
     /***************/
@@ -257,6 +263,8 @@ bool PSpower::initProperties()
     IUFillSwitch(&USBpwS[PUSB6], "PUSB6", "USB 6", psctl.statusMap["USB6"].state ? ISS_ON : ISS_OFF);
     IUFillSwitchVector(&USBpwSP, USBpwS, USBPW_N, getDeviceName(), "USB_ENABLES", "Power", USB_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
     
+    // TODO add allon/alloff button
+    
     // USB enable lights
     IUFillLight(&USBlightsL[USB1], "LUSB1", "USB3 Port1", IPS_OK);
     IUFillLight(&USBlightsL[USB2], "LUSB2", "USB3 Port2", IPS_OK);
@@ -265,6 +273,15 @@ bool PSpower::initProperties()
     IUFillLight(&USBlightsL[USB5], "LUSB5", "USB2 Port5", IPS_OK);
     IUFillLight(&USBlightsL[USB6], "LUSB6", "USB2 Port6", IPS_OK);
     IUFillLightVector(&USBlightsLP, USBlightsL, USB_N, getDeviceName(), "USB_PORT_LIGHTS", "Status", USB_TAB, IPS_IDLE);
+    
+    // USB Names
+    IUFillText(&USBLabelsT[USB1], "USB1_NAME", "USB 1 Name", "USB 1");
+    IUFillText(&USBLabelsT[USB2], "USB2_NAME", "USB 2 Name", "USB 2");
+    IUFillText(&USBLabelsT[USB3], "USB3_NAME", "USB 3 Name", "USB 3");
+    IUFillText(&USBLabelsT[USB4], "USB4_NAME", "USB 4 Name", "USB 4");
+    IUFillText(&USBLabelsT[USB5], "USB5_NAME", "USB 5 Name", "USB 5");
+    IUFillText(&USBLabelsT[USB6], "USB6_NAME", "USB 6 Name", "USB 6");
+    IUFillTextVector(&USBLabelsTP, USBLabelsT, USB_N, getDeviceName(), "USB_LABELS", "USB", USB_TAB, IP_RW, 60, IPS_IDLE);
     
     /***************/
     /* DEW Tab     */
@@ -282,6 +299,11 @@ bool PSpower::initProperties()
     IUFillNumber(&DewCurrentN[DEW1], "CDEW1", "Dew1", "%.2f", 0, 100, 1, 0);
     IUFillNumber(&DewCurrentN[DEW2], "CDEW2", "Dew2", "%.2f", 0, 100, 1, 0);
     IUFillNumberVector(&DewCurrentNP, DewCurrentN, DEW_N, getDeviceName(), "DEWCUR", "% Current", DEW_TAB, IP_RO, 60, IPS_IDLE);
+    
+    // Dew labels
+    IUFillText(&DewLabelsT[DEW1], "DEW1_NAME", "Dew 1 Name", "Dew1");
+    IUFillText(&DewLabelsT[DEW2], "DEW2_NAME", "Dew 1 Name", "Dew1");
+    IUFillTextVector(&DewLabelsTP, DewLabelsT, DEW_N, getDeviceName(), "DEWLABELS", "Dew", DEW_TAB, IP_RW, 60, IPS_IDLE);
     
     /***************/
     /* FOCUS MOTOR */
@@ -383,33 +405,7 @@ bool PSpower::initProperties()
     IUFillLightVector(&FaultStatusLP, FaultStatusL, FaultStatus_N, getDeviceName(), "FAULTSTATUS", "Status", FAULTS_TAB, IPS_OK);
     
     /*****************/
-    /* Settings tab  */
-    /*****************/
-    //Port Labels
-    IUFillText(&PortLabelsT[OUT1], "PORTLABEL1", "Port1 Name", "Port1");
-    IUFillText(&PortLabelsT[OUT2], "PORTLABEL2", "Port2 Name", "Port2");
-    IUFillText(&PortLabelsT[OUT3], "PORTLABEL3", "Port3 Name", "Port3");
-    IUFillText(&PortLabelsT[OUT4], "PORTLABEL4", "Port4 Name", "Port4");
-    IUFillText(&PortLabelsT[VAR], "PORTLABELVAR", "Variable Name", "VAR");
-    IUFillText(&PortLabelsT[MP], "PORTLABELMP", "Multipurpose Name", "MP");
-    IUFillTextVector(&PortLabelsTP, PortLabelsT, POWER_N, getDeviceName(), "PORTLABELS", "Ports", SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
-    
-    // Dew labels
-    IUFillText(&DewLabelsT[DEW1], "DEW1_NAME", "Dew 1 Name", "Dew1");
-    IUFillText(&DewLabelsT[DEW2], "DEW2_NAME", "Dew 1 Name", "Dew1");
-    IUFillTextVector(&DewLabelsTP, DewLabelsT, DEW_N, getDeviceName(), "DEWLABELS", "Dew", SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
-    
-    // USB Names
-    IUFillText(&USBLabelsT[USB1], "USB1_NAME", "USB 1 Name", "USB 1");
-    IUFillText(&USBLabelsT[USB2], "USB2_NAME", "USB 2 Name", "USB 2");
-    IUFillText(&USBLabelsT[USB3], "USB3_NAME", "USB 3 Name", "USB 3");
-    IUFillText(&USBLabelsT[USB4], "USB4_NAME", "USB 4 Name", "USB 4");
-    IUFillText(&USBLabelsT[USB5], "USB5_NAME", "USB 5 Name", "USB 5");
-    IUFillText(&USBLabelsT[USB6], "USB6_NAME", "USB 6 Name", "USB 6");
-    IUFillTextVector(&USBLabelsTP, USBLabelsT, USB_N, getDeviceName(), "USB_LABELS", "USB", SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
-    
-    /*****************/
-    /* ?? tab  */
+    /* User Limits tab  */
     /*****************/
     // User Limits
     IUFillNumber(&UserLimitsN[InLowerLim], "InLowerLim", "Input Lower Limit", "%.0f", 10, 15, .5, 10);
@@ -427,6 +423,18 @@ bool PSpower::initProperties()
     IUFillNumberVector(&UserLimitsNP, UserLimitsN, UserLimits_N, getDeviceName(), "USRLIMIT", "User Limits", USRLIMIT_TAB, IP_RW, 60, IPS_IDLE);
     
     //TODO add settings for weather alerts - value and % of
+    /*****************/
+    /* Weather tab   */
+    /*****************/
+    // Weather
+    addParameter("WEATHER_TEMPERATURE", "Temperature (F)", 20, 80, 1);
+    addParameter("WEATHER_HUMIDITY", "Humidity (%)", 0, 95, 1);
+    addParameter("WEATHER_DEW_POINT", "Dew Point (F)", 0, 100, 0);
+    addParameter("WEATHER_DP_DEP", "DP Depresion", 3, 0, 1);
+    
+    setCriticalParameter("WEATHER_TEMPERATURE");
+    setCriticalParameter("WEATHER_HUMIDITY");
+    setCriticalParameter("WEATHER_DP_DEP");
     
     return true;
 }
@@ -447,7 +455,6 @@ bool PSpower::updateProperties()
         defineSwitch(&PowerClearSP);
         
         // Options tab
-        defineSwitch(&AutoBootSP);
         defineSwitch(&TemplateSP);
         defineSwitch(&MtrTypeSP);
         defineSwitch(&PrefDirSP);
@@ -456,6 +463,7 @@ bool PSpower::updateProperties()
         defineSwitch(&TempCompSP);
         defineNumber(&MtrProfNP);
         defineSwitch(&PermFocSP);
+        defineSwitch(&AutoBootSP);
         defineNumber(&PowerLEDNP);
         defineNumber(&VarSettingNP);
         defineSwitch(&MPtypeSP);
@@ -486,15 +494,18 @@ bool PSpower::updateProperties()
         defineLight(&PORTlightsLP);
         defineSwitch(&AllSP);
         defineNumber(&PortCurrentNP);
+        defineText(&PortLabelsTP);
         
         // USB tab
         defineSwitch(&USBpwSP);
         defineLight(&USBlightsLP);
+        defineText(&USBLabelsTP);
         
         // DEW tab
         defineNumber(&DewPowerNP);
         defineLight(&DEWlightsLP);
         defineNumber(&DewCurrentNP);
+        defineText(&DewLabelsTP);
         
         // Weather tab
         WI::updateProperties();
@@ -510,12 +521,7 @@ bool PSpower::updateProperties()
         // User Limits
         defineNumber(&UserLimitsNP);
         
-        // Settings tab
-        defineText(&PortLabelsTP);
-        defineText(&DewLabelsTP);
-        defineText(&USBLabelsTP);
-
-        // Firmware tab
+        // INFO tab
         defineText(&FirmwareTP);
         
     }
@@ -923,7 +929,33 @@ bool PSpower::ISNewText(const char *dev, const char *name, char *texts[], char *
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        //TODO add all port naming fields
+        // Port names
+        if (strcmp(name, PortLabelsTP.name) == 0)
+        {
+            PortLabelsTP.s = IPS_OK;
+            IUUpdateText(&PortLabelsTP, texts, names, n);
+            IDSetText(&PortLabelsTP, nullptr);
+            return true;
+        }
+        
+        // USB names
+        if (strcmp(name, USBLabelsTP.name) == 0)
+        {
+            USBLabelsTP.s = IPS_OK;
+            IUUpdateText(&USBLabelsTP, texts, names, n);
+            IDSetText(&USBLabelsTP, nullptr);
+            return true;
+        }
+        
+        // Dew names
+        if (strcmp(name, DewLabelsTP.name) == 0)
+        {
+            DewLabelsTP.s = IPS_OK;
+            IUUpdateText(&DewLabelsTP, texts, names, n);
+            IDSetText(&DewLabelsTP, nullptr);
+            return true;
+        }
+        
         return true;
     }
     
@@ -1047,10 +1079,12 @@ bool PSpower::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
     FI::saveConfigItems(fp);
+    // TODO not saving port or usb labels
     IUSaveConfigText(fp, &PortLabelsTP);
     IUSaveConfigText(fp, &USBLabelsTP);
+    IUSaveConfigText(fp, &DewLabelsTP);
     IUSaveConfigNumber(fp, &FaultMaskNP);
-    //IUSaveConfigSwitch(fp, &AutoBootSP);
+    IUSaveConfigSwitch(fp, &AutoBootSP);
     return true;
 }
 
@@ -1060,8 +1094,9 @@ void PSpower::ISGetProperties(const char *dev)
     DefaultDevice::ISGetProperties(dev);
     loadConfig(true, PortLabelsTP.name);
     loadConfig(true, USBLabelsTP.name);
+    loadConfig(true, DewLabelsTP.name);
     loadConfig(true, FaultMaskNP.name);
-    //loadConfig(true, AutoBootSP.name);
+    loadConfig(true, AutoBootSP.name);
 }
 
 /***************************************************************/
@@ -1119,6 +1154,7 @@ void PSpower::TimerHit()
     //TODO add weather alerts
     
     //Update Weather fields
+    /**
     Temp = psctl.getTemperature();
     Hum = psctl.getHumidity();
     Dp = Temp - ((100 - Hum)/5.0);
@@ -1134,6 +1170,17 @@ void PSpower::TimerHit()
         WEATHERNP.s = IPS_BUSY;
     else
         WEATHERNP.s = IPS_OK;
+    **/
+    
+    // Update weather params
+    Temp = psctl.getTemperature();
+    Hum = psctl.getHumidity();
+    setParameterValue("WEATHER_TEMPERATURE", Temp);
+    setParameterValue("WEATHER_HUMIDITY", Hum);
+    setParameterValue("WEATHER_DEW_POINT", Temp - ((100 - Hum)/5.0));
+    setParameterValue("WEATHER_DP_DEP", Temp - Dp);
+    
+    WI::syncCriticalParameters();
     
     // Update USB enable lights
     USBlightsL[USB2].s = psctl.statusMap["USB2"].state ? IPS_OK : IPS_ALERT;

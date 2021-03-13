@@ -394,7 +394,6 @@ private:
     ISwitch RebootS[0];
     ISwitchVectorProperty RebootSP;
     
-    
     PowerStarProfile curProfile;
     
     static constexpr const char *POWER_TAB {"Power"};
