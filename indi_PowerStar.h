@@ -1,6 +1,6 @@
 /***********************************************************************
 *  Program:      indi_PowerStar.h
-*  Version:      20210305
+*  Version:      20210324
 *  Author:       Sifan S. Kahale
 *  Description:  PowerStar.h file
 
@@ -31,13 +31,7 @@ typedef enum {     PS_NOT_MOVING,
 
 class PSpower : public INDI::DefaultDevice, public INDI::FocuserInterface, public INDI::WeatherInterface
 {
-protected:
-    // Weather Overrides
-        virtual IPState updateWeather() override
-        {
-            return IPS_OK;
-        }
-    
+ 
 public:
     PSCTL psctl;
     
@@ -54,6 +48,7 @@ public:
     virtual void TimerHit() override;
     virtual bool   Connect() override;
 	virtual bool   Disconnect() override;
+    virtual IPState updateWeather() override;
 
     // focus
     virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
@@ -75,7 +70,7 @@ private:
     
     float   Temp;
     float   Hum;
-    float   Dp;
+    float   DewPt;
     float   Dep;
     float   VoltsIn;
     float   AmpsIn;
@@ -83,7 +78,8 @@ private:
     float   WattHrs;
     uint32_t faults;
     uint32_t faultMask;
-    
+    char portLabel[MAXINDILABEL];
+    int portRC;
     PS_MOTOR m_Motor { PS_NOT_MOVING };
     int32_t  simPosition { 0 };
     uint32_t maximumPosition = 0;
@@ -162,9 +158,18 @@ private:
     };
     INumber PowerSensorsN[SENSOR_N];
     INumberVectorProperty PowerSensorsNP;
-        
+    
+    // clear power usages stats
     ISwitch PowerClearS[0] {};
     ISwitchVectorProperty PowerClearSP;
+    
+    // turn all devices off
+    ISwitch TurnAllOffS[0] {};
+    ISwitchVectorProperty TurnAllOffSP;
+    
+    // turn all on profile ports
+    ISwitch TurnAllProfileS[0] {};
+    ISwitchVectorProperty TurnAllProfileSP;
     
     // Power LED
     INumber PowerLEDN[1];
@@ -233,6 +238,9 @@ private:
     ISwitch AutoBootS[AutoBoot_N];
     ISwitchVectorProperty AutoBootSP;
     
+    ISwitch ProfileDevS[AutoBoot_N];
+    ISwitchVectorProperty ProfileDevSP;
+    
     enum
     {
         DEW1,
@@ -264,8 +272,6 @@ private:
     IText USBLabelsT[USB_N];
     ITextVectorProperty USBLabelsTP;
     
-    ILight USBlightsL[USB_N];
-    ILightVectorProperty USBlightsLP;
     
     enum
     {
@@ -276,6 +282,9 @@ private:
     };
     ISwitch USBpwS[USBPW_N];
     ISwitchVectorProperty USBpwSP;
+    
+    ILight USBlightsL[USBPW_N];
+    ILightVectorProperty USBlightsLP;
     
     // Faults    
     enum{
@@ -385,7 +394,6 @@ private:
         ALLON,
         ALLOFF,
         AUTON,
-        REBOOT,
         All_N,
     };
     ISwitch AllS[All_N];

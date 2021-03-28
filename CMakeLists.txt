@@ -16,7 +16,7 @@ find_package(GSL REQUIRED)
 
 # these will be used to set the version number in config.h and our driver's xml file
 set(PS_VERSION_MAJOR 0)
-set(PS_VERSION_MINOR 7)
+set(PS_VERSION_MINOR 8)
 
 # do the replacement in the config.h
 configure_file(
@@ -60,7 +60,7 @@ target_link_libraries(
 )
 
 # tell cmake where to install our executable
-install(TARGETS indi_powerstar RUNTIME DESTINATION bin)
+install(TARGETS indi_powerstar RUNTIME DESTINATION /usr/bin)
 
 # and where to put the driver's xml file.
 install(

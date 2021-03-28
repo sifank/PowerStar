@@ -1,6 +1,6 @@
 /***************************************************************************
 File:           indi_PowerStar.cpp
-Version:        202110303
+Version:        20210324
 Author:         Sifan
 Desc:           PowerStar INDI driver
 Requires:       PScontrol.cpp hidapi.c
@@ -113,14 +113,11 @@ bool PSpower::Disconnect()
 /***************************************************************/
 bool PSpower::initProperties()
 {
-    FI::initProperties(FOCUS_TAB);
-    WI::initProperties(MAIN_CONTROL_TAB, ENVIRONMENT_TAB);
-    
-    setDriverInterface(AUX_INTERFACE | FOCUSER_INTERFACE);
     INDI::DefaultDevice::initProperties();
-    
+    setDriverInterface(AUX_INTERFACE | FOCUSER_INTERFACE | WEATHER_INTERFACE);
+    WI::initProperties(MAIN_CONTROL_TAB, ENVIRONMENT_TAB);
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC);
-    
+    FI::initProperties(FOCUS_TAB);
     addAuxControls();
     
     psctl.getStatus();
@@ -150,6 +147,18 @@ bool PSpower::initProperties()
     IUFillSwitch(&PowerClearS[0], "SENSOR_CLEAR", "Clear", ISS_OFF);
     IUFillSwitchVector(&PowerClearSP, PowerClearS, 1, getDeviceName(), "Reset AmpHrs/Watts Field", "Power", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
     
+    // Turn on profiled devices
+    IUFillSwitch(&TurnAllProfileS[0], "PROFILE_ON", "Profile On", ISS_OFF);
+    IUFillSwitchVector(&TurnAllProfileSP, TurnAllProfileS, 1, getDeviceName(), "Turn on profile devices", "Profile", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
+    
+    // Turn everything off
+    IUFillSwitch(&TurnAllOffS[0], "TURN_ALL_OFF", "All Off", ISS_OFF);
+    IUFillSwitchVector(&TurnAllOffSP, TurnAllOffS, 1, getDeviceName(), "Turn off all devices", "All Off", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
+    
+    // Reboot
+    IUFillSwitch(&RebootS[0], "REBOOT", "Reboot", ISS_OFF);
+    IUFillSwitchVector(&RebootSP, RebootS, 1, getDeviceName(), "REBOOT", "Power", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    
     /***************/
     /* INFO Tab    */
     /***************/
@@ -164,11 +173,14 @@ bool PSpower::initProperties()
     /* Options Tab */
     /***************/
     //Autoboot
+    //TODO perhaps this should be defaults-on for button on main
     IUFillSwitch(&AutoBootS[ABOUT1], "AB_PORT1", "Port1", ISS_OFF);
     IUFillSwitch(&AutoBootS[ABOUT2], "AB_PORT2", "Port2", ISS_OFF);
     IUFillSwitch(&AutoBootS[ABOUT3], "AB_PORT3", "Port3", ISS_OFF);
     IUFillSwitch(&AutoBootS[ABOUT4], "AB_PORT4", "Port4", ISS_OFF);
+    //TODO must save Var value
     IUFillSwitch(&AutoBootS[ABVAR], "AB_VAR", "Variable", ISS_OFF);
+    //TODO must save MP type and settings
     IUFillSwitch(&AutoBootS[ABMP], "AB_MP", "MultiPurpose", ISS_OFF);
     IUFillSwitch(&AutoBootS[ABDEWA], "AB_DEWA", "DewA", ISS_OFF);
     IUFillSwitch(&AutoBootS[ABDEWB], "AB_DEWB", "DewB", ISS_OFF);
@@ -176,6 +188,23 @@ bool PSpower::initProperties()
     IUFillSwitch(&AutoBootS[ABUSB3], "AB_USB3", "Usb3", ISS_OFF);
     IUFillSwitch(&AutoBootS[ABUSB6], "AB_USB6", "Usb6", ISS_OFF);
     IUFillSwitchVector(&AutoBootSP, AutoBootS, AutoBoot_N, getDeviceName(), "AUTOBOOT_ENABLES", "Autoboot", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    
+    // Profile devices
+    // TODO perhaps this should be defaults-on for button on main
+    IUFillSwitch(&ProfileDevS[ABOUT1], "P_PORT1", "Port1", ISS_OFF);
+    IUFillSwitch(&ProfileDevS[ABOUT2], "P_PORT2", "Port2", ISS_OFF);
+    IUFillSwitch(&ProfileDevS[ABOUT3], "P_PORT3", "Port3", ISS_OFF);
+    IUFillSwitch(&ProfileDevS[ABOUT4], "P_PORT4", "Port4", ISS_OFF);
+    //TODO must save Var value
+    IUFillSwitch(&ProfileDevS[ABVAR], "P_VAR", "Variable", ISS_OFF);
+    //TODO must save MP type and settings
+    IUFillSwitch(&ProfileDevS[ABMP], "P_MP", "MultiPurpose", ISS_OFF);
+    IUFillSwitch(&ProfileDevS[ABDEWA], "P_DEWA", "DewA", ISS_OFF);
+    IUFillSwitch(&ProfileDevS[ABDEWB], "P_DEWB", "DewB", ISS_OFF);
+    IUFillSwitch(&ProfileDevS[ABUSB2], "P_USB2", "Usb2", ISS_OFF);
+    IUFillSwitch(&ProfileDevS[ABUSB3], "P_USB3", "Usb3", ISS_OFF);
+    IUFillSwitch(&ProfileDevS[ABUSB6], "P_USB6", "Usb6", ISS_OFF);
+    IUFillSwitchVector(&ProfileDevSP, ProfileDevS, AutoBoot_N, getDeviceName(), "PROFILE_ENABLES", "Profile Devices", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
     
     // Variable port voltage setting
     IUFillNumber(&VarSettingN[0], "VAR_SETTING", "Volts", "%4.1f", 3, 10, 0.1, 0);
@@ -206,104 +235,146 @@ bool PSpower::initProperties()
     /***************/
     /* Power Tab   */
     /***************/
-    //Port Enables
-    IUFillSwitch(&PortCtlS[OUT1], "CPORT1", "Port1", psctl.statusMap["Out1"].state ? ISS_ON : ISS_OFF);
-    IUFillSwitch(&PortCtlS[OUT2], "CPORT2", "Port2", psctl.statusMap["Out2"].state ? ISS_ON : ISS_OFF);
-    IUFillSwitch(&PortCtlS[OUT3], "CPORT3", "Port3", psctl.statusMap["Out3"].state ? ISS_ON : ISS_OFF);
-    IUFillSwitch(&PortCtlS[OUT4], "CPORT4", "Port4", psctl.statusMap["Out4"].state ? ISS_ON : ISS_OFF);
-    IUFillSwitch(&PortCtlS[VAR], "CVAR", "Variable", psctl.statusMap["Var"].state ? ISS_ON : ISS_OFF);
-    IUFillSwitch(&PortCtlS[MP], "CMP", "MultiPurpose", psctl.statusMap["MP"].state ? ISS_ON : ISS_OFF);
-    IUFillSwitchVector(&PortCtlSP, PortCtlS, POWER_N, getDeviceName(), "PORT_ENABLES", "Enable", POWER_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    //Port Labels - must define before pulling out names below
+    IUFillText(&PortLabelsT[OUT1], "PORTLABEL1", "Port 1", "Port 1");
+    IUFillText(&PortLabelsT[OUT2], "PORTLABEL2", "Port 2", "Port 2");
+    IUFillText(&PortLabelsT[OUT3], "PORTLABEL3", "Port 3", "Port 3");
+    IUFillText(&PortLabelsT[OUT4], "PORTLABEL4", "Port 4", "Port 4");
+    IUFillText(&PortLabelsT[VAR], "PORTLABELVAR", "Variable", "VAR");
+    IUFillText(&PortLabelsT[MP], "PORTLABELMP", "Multipurpose", "MP");
+    IUFillTextVector(&PortLabelsTP, PortLabelsT, POWER_N, getDeviceName(), "PORTLABELS", "Naming", POWER_TAB, IP_WO, 60, IPS_IDLE);
     
-    // Port enable lights
-    IUFillLight(&PORTlightsL[OUT1], "LPORT1", "Port1", IPS_OK);
-    IUFillLight(&PORTlightsL[OUT2], "LPORT2", "Port2", IPS_OK);
-    IUFillLight(&PORTlightsL[OUT3], "LPORT3", "Port3", IPS_OK);
-    IUFillLight(&PORTlightsL[OUT4], "LPORT4", "Port4", IPS_OK);
-    IUFillLight(&PORTlightsL[VAR], "LVAR", "Variable", IPS_OK);
-    IUFillLight(&PORTlightsL[MP], "LMP", "MultiPurpose", IPS_OK);
+    //TODO add 'Defaults' button
+    
+    // Port 1
+    memset(portLabel, 0, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), PortLabelsTP.name, PortLabelsT[OUT1].name, portLabel, MAXINDILABEL);
+    IUFillSwitch(&PortCtlS[OUT1], "CPORT1", portRC == -1 ? "Port 1" : portLabel, psctl.statusMap["Out1"].state ? ISS_ON : ISS_OFF);
+    IUFillLight(&PORTlightsL[OUT1], "LPORT1", portRC == -1 ? "Port 1" : portLabel, IPS_OK);
+    IUFillNumber(&PortCurrentN[OUT1], "CURRENT_OUT1", portRC == -1 ? "Port 1" : portLabel, "%0.2f", 0, 0, 0, 0);
+    
+    // Port 2
+    memset(portLabel, 0, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), PortLabelsTP.name, PortLabelsT[OUT2].name, portLabel, MAXINDILABEL);
+    IUFillSwitch(&PortCtlS[OUT2], "CPORT2", portRC == -1 ? "Port 2" : portLabel, psctl.statusMap["Out2"].state ? ISS_ON : ISS_OFF);
+    IUFillLight(&PORTlightsL[OUT2], "LPORT2", portRC == -1 ? "Port 2" : portLabel, IPS_OK);
+    IUFillNumber(&PortCurrentN[OUT2], "CURRENT_OUT2", portRC == -1 ? "Port 2" : portLabel, "%0.2f", 0, 0, 0, 0);
+    
+    // Port 3
+    memset(portLabel, 0, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), PortLabelsTP.name, PortLabelsT[OUT3].name, portLabel, MAXINDILABEL);
+    IUFillSwitch(&PortCtlS[OUT3], "CPORT3", portRC == -1 ? "Port 3" : portLabel, psctl.statusMap["Out3"].state ? ISS_ON : ISS_OFF);
+    IUFillLight(&PORTlightsL[OUT3], "LPORT3", portRC == -1 ? "Port 3" : portLabel, IPS_OK);
+    IUFillNumber(&PortCurrentN[OUT3], "CURRENT_OUT3", portRC == -1 ? "Port 3" : portLabel, "%0.2f", 0, 0, 0, 0);
+    
+    // Port 4
+    memset(portLabel, 0, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), PortLabelsTP.name, PortLabelsT[OUT4].name, portLabel, MAXINDILABEL);
+    IUFillSwitch(&PortCtlS[OUT4], "CPORT4", portRC == -1 ? "Port 4" : portLabel, psctl.statusMap["Out4"].state ? ISS_ON : ISS_OFF);
+    IUFillLight(&PORTlightsL[OUT4], "LPORT4", portRC == -1 ? "Port 4" : portLabel, IPS_OK);
+    IUFillNumber(&PortCurrentN[OUT4], "CURRENT_OUT4", portRC == -1 ? "Port 4" : portLabel, "%0.2f", 0, 0, 0, 0);
+    
+    // Var Port
+    memset(portLabel, 0, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), PortLabelsTP.name, PortLabelsT[VAR].name, portLabel, MAXINDILABEL);
+    IUFillSwitch(&PortCtlS[VAR], "CVAR", portRC == -1 ? "Variable" : portLabel, psctl.statusMap["Var"].state ? ISS_ON : ISS_OFF);
+    IUFillLight(&PORTlightsL[VAR], "LVAR", portRC == -1 ? "Variable" : portLabel, IPS_OK);
+    IUFillNumber(&PortCurrentN[OUT4], "CURRENT_OUT4", portRC == -1 ? "Variable" : portLabel, "%0.2f", 0, 0, 0, 0);
+    
+    // MP Port
+    memset(portLabel, 0, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), PortLabelsTP.name, PortLabelsT[MP].name, portLabel, MAXINDILABEL);
+    IUFillSwitch(&PortCtlS[MP], "CMP", portRC == -1 ? "MultiPurpose" : portLabel, psctl.statusMap["MP"].state ? ISS_ON : ISS_OFF);
+    IUFillLight(&PORTlightsL[MP], "LMP", portRC == -1 ? "MultiPurpose" : portLabel, IPS_OK);
+    IUFillNumber(&PortCurrentN[OUT4], "CURRENT_OUT4", portRC == -1 ? "MultiPurpose" : portLabel, "%0.2f", 0, 0, 0, 0);
+    
     IUFillLightVector(&PORTlightsLP, PORTlightsL, POWER_N, getDeviceName(), "PORT_LIGHTS", "Status", POWER_TAB, IPS_IDLE);
+    IUFillSwitchVector(&PortCtlSP, PortCtlS, POWER_N, getDeviceName(), "PORT_ENABLES", "Enable", POWER_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    IUFillNumberVector(&PortCurrentNP, PortCurrentN, POWER_N, getDeviceName(), "PORT_CURRENT", "Current", POWER_TAB, IP_RO, 0, IPS_IDLE);
+    
     
     // All On
     IUFillSwitch(&AllS[ALLON], "ALL_ON", "All On", ISS_OFF);
     IUFillSwitch(&AllS[ALLOFF], "ALL_OFF", "All Off", ISS_OFF);
     IUFillSwitch(&AllS[AUTON], "AUTO_ON", "AUTO", ISS_OFF);
-    IUFillSwitch(&AllS[REBOOT], "REBOOT", "Reboot", ISS_OFF);
     IUFillSwitchVector(&AllSP, AllS, All_N, getDeviceName(), "ALL", "All Ports", POWER_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-    
-    
-    // Reboot
-    IUFillSwitch(&RebootS[0], "REBOOT", "Reboot", ISS_OFF);
-    IUFillSwitchVector(&RebootSP, RebootS, 1, getDeviceName(), "REBOOT", "Power", OPTIONS_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-    
-    //Port Currents
-    IUFillNumber(&PortCurrentN[OUT1], "CURRENT_OUT1", "Port 1 Current", "%0.2f", 0, 0, 0, 0);
-    IUFillNumber(&PortCurrentN[OUT2], "CURRENT_OUT2", "Port 2 Current", "%0.2f", 0, 0, 0, 0);
-    IUFillNumber(&PortCurrentN[OUT3], "CURRENT_OUT3", "Port 3 Current", "%0.2f", 0, 0, 0, 0);
-    IUFillNumber(&PortCurrentN[OUT4], "CURRENT_OUT4", "Port 4 Current", "%0.2f", 0, 0, 0, 0);
-    IUFillNumber(&PortCurrentN[VAR], "CURRENT_VAR", "Variable Current", "%0.2f", 0, 0, 0, 0);
-    IUFillNumber(&PortCurrentN[MP], "CURRENT_MP", "Multipurpose Current", "%0.2f", 0, 0, 0, 0);
-    IUFillNumberVector(&PortCurrentNP, PortCurrentN, POWER_N, getDeviceName(), "PORT_CURRENT", "Current", POWER_TAB, IP_RO, 0, IPS_IDLE);
-    
-    //Port Labels
-    IUFillText(&PortLabelsT[OUT1], "PORTLABEL1", "Port1 Name", "Port1");
-    IUFillText(&PortLabelsT[OUT2], "PORTLABEL2", "Port2 Name", "Port2");
-    IUFillText(&PortLabelsT[OUT3], "PORTLABEL3", "Port3 Name", "Port3");
-    IUFillText(&PortLabelsT[OUT4], "PORTLABEL4", "Port4 Name", "Port4");
-    IUFillText(&PortLabelsT[VAR], "PORTLABELVAR", "Variable Name", "VAR");
-    IUFillText(&PortLabelsT[MP], "PORTLABELMP", "Multipurpose Name", "MP");
-    IUFillTextVector(&PortLabelsTP, PortLabelsT, POWER_N, getDeviceName(), "PORTLABELS", "Ports", POWER_TAB, IP_RW, 60, IPS_IDLE);
     
     /***************/
     /* USB Tab     */
     /***************/
-    // USB enable 
-    IUFillSwitch(&USBpwS[PUSB2], "PUSB2", "USB 2", psctl.statusMap["USB2"].state ? ISS_ON : ISS_OFF);
-    IUFillSwitch(&USBpwS[PUSB3], "PUSB3", "USB 3", psctl.statusMap["USB3"].state ? ISS_ON : ISS_OFF);
-    IUFillSwitch(&USBpwS[PUSB6], "PUSB6", "USB 6", psctl.statusMap["USB6"].state ? ISS_ON : ISS_OFF);
-    IUFillSwitchVector(&USBpwSP, USBpwS, USBPW_N, getDeviceName(), "USB_ENABLES", "Power", USB_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
-    
-    // TODO add allon/alloff button
-    
-    // USB enable lights
-    IUFillLight(&USBlightsL[USB1], "LUSB1", "USB3 Port1", IPS_OK);
-    IUFillLight(&USBlightsL[USB2], "LUSB2", "USB3 Port2", IPS_OK);
-    IUFillLight(&USBlightsL[USB3], "LUSB3", "USB3 Port3", IPS_OK);
-    IUFillLight(&USBlightsL[USB4], "LUBB4", "USB3 Port4", IPS_OK);
-    IUFillLight(&USBlightsL[USB5], "LUSB5", "USB2 Port5", IPS_OK);
-    IUFillLight(&USBlightsL[USB6], "LUSB6", "USB2 Port6", IPS_OK);
-    IUFillLightVector(&USBlightsLP, USBlightsL, USB_N, getDeviceName(), "USB_PORT_LIGHTS", "Status", USB_TAB, IPS_IDLE);
-    
+    //TODO add naming as per power ports
     // USB Names
-    IUFillText(&USBLabelsT[USB1], "USB1_NAME", "USB 1 Name", "USB 1");
-    IUFillText(&USBLabelsT[USB2], "USB2_NAME", "USB 2 Name", "USB 2");
-    IUFillText(&USBLabelsT[USB3], "USB3_NAME", "USB 3 Name", "USB 3");
-    IUFillText(&USBLabelsT[USB4], "USB4_NAME", "USB 4 Name", "USB 4");
-    IUFillText(&USBLabelsT[USB5], "USB5_NAME", "USB 5 Name", "USB 5");
-    IUFillText(&USBLabelsT[USB6], "USB6_NAME", "USB 6 Name", "USB 6");
-    IUFillTextVector(&USBLabelsTP, USBLabelsT, USB_N, getDeviceName(), "USB_LABELS", "USB", USB_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillText(&USBLabelsT[USB1], "USB1_NAME", "USB 1", "USB 1");
+    IUFillText(&USBLabelsT[USB2], "USB2_NAME", "USB 2", "USB 2");
+    IUFillText(&USBLabelsT[USB3], "USB3_NAME", "USB 3", "USB 3");
+    IUFillText(&USBLabelsT[USB4], "USB4_NAME", "USB 4", "USB 4");
+    IUFillText(&USBLabelsT[USB5], "USB5_NAME", "USB 5", "USB 5");
+    IUFillText(&USBLabelsT[USB6], "USB6_NAME", "USB 6", "USB 6");
+    IUFillTextVector(&USBLabelsTP, USBLabelsT, USB_N, getDeviceName(), "USB_LABELS", "Naming", USB_TAB, IP_WO, 60, IPS_IDLE);
+    
+    // USB 2 
+    memset(portLabel, 0, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), USBLabelsTP.name, USBLabelsT[USB2].name, portLabel, MAXINDILABEL);
+    IUFillSwitch(&USBpwS[PUSB2], "PUSB2", portRC == -1 ? "USB 2" : portLabel, psctl.statusMap["USB2"].state ? ISS_ON : ISS_OFF);
+    IUFillLight(&USBlightsL[PUSB2], "LUSB2", portRC == -1 ? "USB 2" : portLabel, IPS_OK);
+    
+    // USB 3
+    memset(portLabel, 0, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), USBLabelsTP.name, USBLabelsT[USB3].name, portLabel, MAXINDILABEL);
+    IUFillSwitch(&USBpwS[PUSB3], "PUSB3", portRC == -1 ? "USB 3" : portLabel, psctl.statusMap["USB3"].state ? ISS_ON : ISS_OFF);
+    IUFillLight(&USBlightsL[PUSB3], "LUSB3", portRC == -1 ? "USB 3" : portLabel, IPS_OK);
+    
+    // USB 6
+    memset(portLabel, 0, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), USBLabelsTP.name, USBLabelsT[USB6].name, portLabel, MAXINDILABEL);
+    IUFillSwitch(&USBpwS[PUSB6], "PUSB6", portRC == -1 ? "USB 6" : portLabel, psctl.statusMap["USB6"].state ? ISS_ON : ISS_OFF);
+    IUFillLight(&USBlightsL[PUSB6], "LUSB6", portRC == -1 ? "USB 6" : portLabel, IPS_OK);
+    
+    
+    IUFillSwitchVector(&USBpwSP, USBpwS, USBPW_N, getDeviceName(), "USB_ENABLES", "Power", USB_TAB, IP_RO, ISR_NOFMANY, 60, IPS_IDLE);
+    IUFillLightVector(&USBlightsLP, USBlightsL, USBPW_N, getDeviceName(), "USB_PORT_LIGHTS", "Status", USB_TAB, IPS_IDLE);
+    
+    // TODO add all-on/all-off button
     
     /***************/
     /* DEW Tab     */
     /***************/
-    // Dew % Power (zero is off)
-    IUFillNumber(&DewPowerN[DEW1], "DEW1", "Dew1 % Power", "%.0f", 0, 100, 1, 0);
-    IUFillNumber(&DewPowerN[DEW2], "DEW2", "Dew2 % Power", "%.0f", 0, 100, 1, 0);
-    IUFillNumberVector(&DewPowerNP, DewPowerN, DEW_N, getDeviceName(), "DEWPWR", "% Power", DEW_TAB, IP_RW, 60, IPS_IDLE);
-    
-    IUFillLight(&DEWlightsL[DEW1], "LDEW1", "Dew 1", IPS_OK);
-    IUFillLight(&DEWlightsL[DEW2], "LDEW2", "Dew 2", IPS_OK);
-    IUFillLightVector(&DEWlightsLP, DEWlightsL, DEW_N, getDeviceName(), "DEW_LIGHTS", "Status", DEW_TAB, IPS_OK);
-   
-    // DEW Current draw
-    IUFillNumber(&DewCurrentN[DEW1], "CDEW1", "Dew1", "%.2f", 0, 100, 1, 0);
-    IUFillNumber(&DewCurrentN[DEW2], "CDEW2", "Dew2", "%.2f", 0, 100, 1, 0);
-    IUFillNumberVector(&DewCurrentNP, DewCurrentN, DEW_N, getDeviceName(), "DEWCUR", "% Current", DEW_TAB, IP_RO, 60, IPS_IDLE);
+    // TODO add all-on/all-off button
+    // TODO must save previous % values
+    // TODO add autodew
+    // TODO add MP dew if set
     
     // Dew labels
-    IUFillText(&DewLabelsT[DEW1], "DEW1_NAME", "Dew 1 Name", "Dew1");
-    IUFillText(&DewLabelsT[DEW2], "DEW2_NAME", "Dew 1 Name", "Dew1");
-    IUFillTextVector(&DewLabelsTP, DewLabelsT, DEW_N, getDeviceName(), "DEWLABELS", "Dew", DEW_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillText(&DewLabelsT[DEW1], "DEW1_NAME", "Dew 1", "Dew 1");
+    IUFillText(&DewLabelsT[DEW2], "DEW2_NAME", "Dew 2", "Dew 2");
+    IUFillTextVector(&DewLabelsTP, DewLabelsT, DEW_N, getDeviceName(), "DEWLABELS", "Naming", DEW_TAB, IP_WO, 60, IPS_IDLE);
+    
+    // Dew 1
+    memset(portLabel, 0, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), DewLabelsTP.name, DewLabelsT[DEW1].name, portLabel, MAXINDILABEL);
+    IUFillNumber(&DewPowerN[DEW1], "DEW1", portRC == -1 ? "Dew 1" : portLabel, "%.0f", 0, 100, 1, 0);
+    IUFillLight(&DEWlightsL[DEW1], "LDEW1", portRC == -1 ? "Dew 1" : portLabel, IPS_OK);
+    IUFillNumber(&DewCurrentN[DEW1], "CDEW1", portRC == -1 ? "Dew 1" : portLabel, "%.2f", 0, 100, 1, 0);
+    
+    // Dew 2
+    memset(portLabel, 0, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), DewLabelsTP.name, DewLabelsT[DEW2].name, portLabel, MAXINDILABEL);
+    IUFillNumber(&DewPowerN[DEW2], "DEW2", portRC == -1 ? "Dew 2" : portLabel, "%.0f", 0, 100, 1, 0);
+    IUFillLight(&DEWlightsL[DEW2], "LDEW2", portRC == -1 ? "Dew 2" : portLabel, IPS_OK);
+    IUFillNumber(&DewCurrentN[DEW2], "CDEW2", portRC == -1 ? "Dew 2" : portLabel, "%.2f", 0, 100, 1, 0);
+   
+    // MP Dew (if set)
+    //memset(portLabel, 0, MAXINDILABEL);
+    //portRC = IUGetConfigText(getDeviceName(), DewLabelsTP.name, DewLabelsT[VAR].name, portLabel, MAXINDILABEL);
+    //IUFillNumber(&DewPowerN[DEW2], "DEW2", "Dew2 % Power", "%.0f", 0, 100, 1, 0);
+    //IUFillLight(&DEWlightsL[DEW2], "LDEW2", "Dew 2", IPS_OK);
+    //IUFillNumber(&DewCurrentN[DEW2], "CDEW2", "Dew2", "%.2f", 0, 100, 1, 0);
+    
+    IUFillNumberVector(&DewPowerNP, DewPowerN, DEW_N, getDeviceName(), "DEWPWR", "% Power", DEW_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillLightVector(&DEWlightsLP, DEWlightsL, DEW_N, getDeviceName(), "DEW_LIGHTS", "Status", DEW_TAB, IPS_OK);
+    IUFillNumberVector(&DewCurrentNP, DewCurrentN, DEW_N, getDeviceName(), "DEWCUR", "% Current", DEW_TAB, IP_RO, 60, IPS_IDLE);
+    
+    
     
     /***************/
     /* FOCUS MOTOR */
@@ -422,6 +493,8 @@ bool PSpower::initProperties()
     IUFillNumber(&UserLimitsN[MPCurrLim], "MPCurrLim", "MP Current Limit", "%.0f", 0, 6, .5, 6);
     IUFillNumberVector(&UserLimitsNP, UserLimitsN, UserLimits_N, getDeviceName(), "USRLIMIT", "User Limits", USRLIMIT_TAB, IP_RW, 60, IPS_IDLE);
     
+    //TODO add set to defaults button
+    
     //TODO add settings for weather alerts - value and % of
     /*****************/
     /* Weather tab   */
@@ -453,17 +526,23 @@ bool PSpower::updateProperties()
         defineNumber(&PowerSensorsNP);
         defineNumber(&WEATHERNP);
         defineSwitch(&PowerClearSP);
+        defineSwitch(&TurnAllProfileSP);
+        defineSwitch(&TurnAllOffSP);
+        defineSwitch(&RebootSP);
+        
+        // INFO tab
+        defineText(&FirmwareTP);
         
         // Options tab
         defineSwitch(&TemplateSP);
         defineSwitch(&MtrTypeSP);
         defineSwitch(&PrefDirSP);
         defineSwitch(&RevMtrSP);
-        defineSwitch(&RevMtrSP);
         defineSwitch(&TempCompSP);
         defineNumber(&MtrProfNP);
         defineSwitch(&PermFocSP);
         defineSwitch(&AutoBootSP);
+        defineSwitch(&ProfileDevSP);
         defineNumber(&PowerLEDNP);
         defineNumber(&VarSettingNP);
         defineSwitch(&MPtypeSP);
@@ -520,10 +599,7 @@ bool PSpower::updateProperties()
         
         // User Limits
         defineNumber(&UserLimitsNP);
-        
-        // INFO tab
-        defineText(&FirmwareTP);
-        
+    
     }
     else
     {
@@ -531,16 +607,28 @@ bool PSpower::updateProperties()
         deleteProperty(PowerSensorsNP.name);
         deleteProperty(WEATHERNP.name);
         deleteProperty(PowerClearSP.name);
+        deleteProperty(TurnAllProfileSP.name);
+        deleteProperty(TurnAllOffSP.name);
+        deleteProperty(RebootSP.name);
         
-        // Settings tab
+        // Options tab
+        deleteProperty(TemplateSP.name);
+        deleteProperty(MtrTypeSP.name);
+        deleteProperty(PrefDirSP.name);
+        deleteProperty(RevMtrSP.name);
+        deleteProperty(TempCompSP.name);
+        deleteProperty(MtrProfNP.name);
+        deleteProperty(PermFocSP.name);
+        deleteProperty(AutoBootSP.name);
+        deleteProperty(ProfileDevSP.name);
         deleteProperty(PowerLEDNP.name);
+        deleteProperty(VarSettingNP.name);
         deleteProperty(MPtypeSP.name);
         deleteProperty(MPpwmNP.name);
         deleteProperty(MPdewNP.name);
         
-        // Status tab
+        // General Info tab
         deleteProperty(FirmwareTP.name);
-        deleteProperty(FaultsNP.name);
         
         // Power tab
         deleteProperty(PortCtlSP.name);
@@ -548,7 +636,6 @@ bool PSpower::updateProperties()
         deleteProperty(PortLabelsTP.name);
         deleteProperty(AllSP.name);
         deleteProperty(PortCurrentNP.name);
-        //deleteProperty(AutoBootSP.name);
         
         // USB tab
         deleteProperty(USBLabelsTP.name);
@@ -560,16 +647,6 @@ bool PSpower::updateProperties()
         deleteProperty(DewCurrentNP.name);
         deleteProperty(DEWlightsLP.name);
         deleteProperty(DewLabelsTP.name);
-        
-        // Focus Motor tab
-        deleteProperty(MtrTypeSP.name);
-        deleteProperty(TemplateSP.name);
-        deleteProperty(PrefDirSP.name);
-        deleteProperty(RevMtrSP.name);
-        deleteProperty(RevMtrSP.name);
-        deleteProperty(TempCompSP.name);
-        deleteProperty(MtrProfNP.name);
-        deleteProperty(PermFocSP.name);
         
         // Faults tab
         //deleteProperty(FaultsNP.name);
@@ -669,7 +746,6 @@ bool PSpower::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             AllS[ALLON].s = ISS_OFF;
             AllS[ALLOFF].s = ISS_OFF;
             AllS[AUTON].s = ISS_OFF;
-            AllS[REBOOT].s = ISS_OFF;
             AllSP.s = IPS_OK;
             IDSetSwitch(&AllSP, nullptr);
             
@@ -679,11 +755,41 @@ bool PSpower::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             return true;
         }
         
+        // Select profile devices
+         if (strcmp(name, ProfileDevSP.name) == 0)
+        {
+            ProfileDevS[0].s = ISS_ON;
+            ProfileDevSP.s = IPS_OK;
+            IDSetSwitch(&ProfileDevSP, nullptr);
+            saveConfig();
+            return true;
+        }   
+        
+        // Turn on all profile devices
+        if (strcmp(name, TurnAllProfileSP.name) == 0)
+        {
+            if(!strcmp(names[OUT1], ProfileDevS[OUT1].name))
+                ProfileDevS[OUT1].s ?  psctl.setPowerState("out1", "yes") : psctl.setPowerState("out1", "no");
+            if(!strcmp(names[OUT2], ProfileDevS[OUT1].name))
+                ProfileDevS[OUT2].s ?  psctl.setPowerState("out2", "yes") : psctl.setPowerState("out2", "no");
+            if(!strcmp(names[OUT3], ProfileDevS[OUT1].name))
+                ProfileDevS[OUT3].s ?  psctl.setPowerState("out3", "yes") : psctl.setPowerState("out3", "no");
+            if(!strcmp(names[OUT4], ProfileDevS[OUT1].name))
+                ProfileDevS[OUT4].s ?  psctl.setPowerState("out4", "yes") : psctl.setPowerState("out4", "no");
+            if(!strcmp(names[VAR], ProfileDevS[OUT1].name))
+                ProfileDevS[VAR].s ?  psctl.setPowerState("var", "yes") : psctl.setPowerState("var", "no");
+            
+            TurnAllProfileSP.s = IPS_OK;
+            IDSetSwitch(&TurnAllProfileSP, nullptr);
+            return true;
+        }        
+        
         // USB power switches
         if (strcmp(name, USBpwSP.name) == 0)
         {
             IUUpdateSwitch(&USBpwSP, states, names, n);
             //TODO add test for success and update status flag
+            // TODO status lights are not updating or is this even working?
             if(!strcmp(names[PUSB2], USBpwS[PUSB2].name))
                 USBpwS[PUSB2].s ?  psctl.setPowerState("usb2", "yes") : psctl.setPowerState("usb2", "no");
             if(!strcmp(names[PUSB3], USBpwS[PUSB3].name))
@@ -691,7 +797,7 @@ bool PSpower::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             if(!strcmp(names[PUSB6], USBpwS[PUSB6].name))
                 USBpwS[PUSB6].s ?  psctl.setPowerState("usb6", "yes") : psctl.setPowerState("usb6", "no");
             
-            USBpwSP.s = IPS_OK;
+            USBpwSP.s = IPS_OK;  //TODO not turning green!
             IDSetSwitch(&USBpwSP, nullptr);
             return true;
         }
@@ -806,7 +912,6 @@ bool PSpower::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 AllS[ALLON].s = ISS_ON;
                 AllS[ALLOFF].s = ISS_OFF;
                 AllS[AUTON].s = ISS_OFF;
-                AllS[REBOOT].s = ISS_OFF;
                 AllSP.s = IPS_OK;
                 IDSetSwitch(&AllSP, nullptr);
                 return true;
@@ -846,7 +951,6 @@ bool PSpower::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 AllS[ALLOFF].s = ISS_ON;
                 AllS[ALLON].s = ISS_OFF;
                 AllS[AUTON].s = ISS_OFF;
-                AllS[REBOOT].s = ISS_OFF;
                 AllSP.s = IPS_OK;
                 IDSetSwitch(&AllSP, nullptr);
                 return true;
@@ -887,36 +991,33 @@ bool PSpower::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 AllS[ALLOFF].s = ISS_OFF;
                 AllS[ALLON].s = ISS_OFF;
                 AllS[AUTON].s = ISS_ON;
-                AllS[REBOOT].s = ISS_OFF;
                 AllSP.s = IPS_OK;
                 IDSetSwitch(&AllSP, nullptr);
                 return true;
             }
+        }
+        
+        // Reboot Power*Star Hub
+        if (strcmp(name, RebootSP.name) == 0)
+        {
+            IUUpdateSwitch(&RebootSP, states, names, n);
             
-            // Reboot Power*Star Hub
-            else if (IUFindOnSwitchIndex(&AllSP) == REBOOT)
-            {
-                IUUpdateSwitch(&RebootSP, states, names, n);
-            
-                psctl.restart();
-                psctl.Disconnect();
-                LOG_ERROR("Power*Star Hub is rebooting");
-                PSpower::Disconnect();
+            psctl.restart();
+            psctl.Disconnect();
+            LOG_WARN("Power*Star Hub is rebooting - wait a few seconds then disconnect and reconnect");
+            PSpower::Disconnect();
                 
-                AllS[ALLOFF].s = ISS_OFF;
-                AllS[ALLON].s = ISS_OFF;
-                AllS[AUTON].s = ISS_OFF;
-                AllS[REBOOT].s = ISS_ON;
-                AllSP.s = IPS_OK;
-                IDSetSwitch(&AllSP, nullptr);
-                return true;
-                
-            }
+            RebootS[0].s = ISS_ON;
+            RebootSP.s = IPS_OK;
+            IDSetSwitch(&RebootSP, nullptr);
+            return true;
         }  
         
         if (strstr(name, "FOCUS"))
             return FI::processSwitch(dev, name, states, names, n);
     }
+    
+    // TODO Focus Motor template (TemplateS)
 
     // Nobody has claimed this, so let the parent handle it
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
@@ -932,9 +1033,11 @@ bool PSpower::ISNewText(const char *dev, const char *name, char *texts[], char *
         // Port names
         if (strcmp(name, PortLabelsTP.name) == 0)
         {
-            PortLabelsTP.s = IPS_OK;
             IUUpdateText(&PortLabelsTP, texts, names, n);
+            PortLabelsTP.s = IPS_OK;
             IDSetText(&PortLabelsTP, nullptr);
+            LOG_INFO("Power port labels saved. Driver must be restarted for the labels to take effect.");
+            saveConfig();
             return true;
         }
         
@@ -944,6 +1047,8 @@ bool PSpower::ISNewText(const char *dev, const char *name, char *texts[], char *
             USBLabelsTP.s = IPS_OK;
             IUUpdateText(&USBLabelsTP, texts, names, n);
             IDSetText(&USBLabelsTP, nullptr);
+            LOG_INFO("USB labels saved. Driver must be restarted for the labels to take effect.");
+            saveConfig();
             return true;
         }
         
@@ -953,6 +1058,8 @@ bool PSpower::ISNewText(const char *dev, const char *name, char *texts[], char *
             DewLabelsTP.s = IPS_OK;
             IUUpdateText(&DewLabelsTP, texts, names, n);
             IDSetText(&DewLabelsTP, nullptr);
+            LOG_INFO("Dew labels saved. Driver must be restarted for the labels to take effect.");
+            saveConfig();
             return true;
         }
         
@@ -1061,7 +1168,6 @@ bool PSpower::ISNewNumber(const char * dev, const char * name, double values[], 
             return true;
         }
 
-        
         if (strstr(name, "FOCUS_"))
             return FI::processNumber(dev, name, values, names, n);
 
@@ -1079,12 +1185,20 @@ bool PSpower::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
     FI::saveConfigItems(fp);
-    // TODO not saving port or usb labels
+    WI::saveConfigItems(fp);
     IUSaveConfigText(fp, &PortLabelsTP);
     IUSaveConfigText(fp, &USBLabelsTP);
     IUSaveConfigText(fp, &DewLabelsTP);
     IUSaveConfigNumber(fp, &FaultMaskNP);
     IUSaveConfigSwitch(fp, &AutoBootSP);
+    IUSaveConfigSwitch(fp, &ProfileDevSP);
+    IUSaveConfigSwitch(fp, &TemplateSP);
+    IUSaveConfigSwitch(fp, &MtrTypeSP);
+    IUSaveConfigSwitch(fp, &PrefDirSP);
+    IUSaveConfigSwitch(fp, &RevMtrSP);
+    IUSaveConfigSwitch(fp, &TempCompSP);
+    IUSaveConfigNumber(fp, &MtrProfNP);
+    IUSaveConfigSwitch(fp, &PermFocSP);
     return true;
 }
 
@@ -1097,6 +1211,35 @@ void PSpower::ISGetProperties(const char *dev)
     loadConfig(true, DewLabelsTP.name);
     loadConfig(true, FaultMaskNP.name);
     loadConfig(true, AutoBootSP.name);
+    loadConfig(true, ProfileDevSP.name);
+    loadConfig(true, TemplateSP.name);
+    loadConfig(true, MtrTypeSP.name);
+    loadConfig(true, PrefDirSP.name);
+    loadConfig(true, RevMtrSP.name);
+    loadConfig(true, TempCompSP.name);
+    loadConfig(true, MtrProfNP.name);
+    loadConfig(true, PermFocSP.name);
+}
+
+/***************************************************************/
+IPState PSpower::updateWeather()
+{
+    /***************************/
+    /** Update weather params **/
+    /***************************/
+    Temp = psctl.getTemperature();
+    Hum = psctl.getHumidity();
+    DewPt = Temp - ((100 - Hum)/5.0);
+    
+    setParameterValue("WEATHER_TEMPERATURE", Temp);
+    setParameterValue("WEATHER_HUMIDITY", Hum);
+    setParameterValue("WEATHER_DEW_POINT", Temp - ((100 - Hum)/5.0));
+    setParameterValue("WEATHER_DP_DEP", Temp - DewPt);
+    
+    //WI::updateWeather();
+    WI::syncCriticalParameters();
+    
+    return IPS_OK;
 }
 
 /***************************************************************/
@@ -1111,7 +1254,10 @@ void PSpower::TimerHit()
     
     PSpower::checkFaults();
     
-    // handle focus update
+    
+    /***************************/
+    /**  handle focus update  **/
+    /***************************/
     if (psctl.getAbsPosition(&currentTicks))
         FocusAbsPosN[0].value = currentTicks;
     
@@ -1131,7 +1277,9 @@ void PSpower::TimerHit()
         IDSetNumber(&FocusAbsPosNP, nullptr);
     }
     
+    /***************************/
     //Update sensor data (volts/amps/watts)
+    /***************************/
     VoltsIn = psctl.statusMap["IN"].levels;
     AmpsIn = psctl.statusMap["IN"].current;
     
@@ -1151,44 +1299,18 @@ void PSpower::TimerHit()
     else
         PowerSensorsNP.s = IPS_ALERT;
     
-    //TODO add weather alerts
-    
-    //Update Weather fields
-    /**
-    Temp = psctl.getTemperature();
-    Hum = psctl.getHumidity();
-    Dp = Temp - ((100 - Hum)/5.0);
-    Dep = Temp - Dp;
-    WEATHERN[TEMP].value = Temp;
-    WEATHERN[HUM].value = Hum;
-    WEATHERN[DP].value = Dp;
-    WEATHERN[DEP].value = Dep;
-    IDSetNumber(&WEATHERNP, nullptr);
-    if (Dep < 1.0)
-        WEATHERNP.s = IPS_ALERT;
-    else if (Dep < 3.0)
-        WEATHERNP.s = IPS_BUSY;
-    else
-        WEATHERNP.s = IPS_OK;
-    **/
-    
-    // Update weather params
-    Temp = psctl.getTemperature();
-    Hum = psctl.getHumidity();
-    setParameterValue("WEATHER_TEMPERATURE", Temp);
-    setParameterValue("WEATHER_HUMIDITY", Hum);
-    setParameterValue("WEATHER_DEW_POINT", Temp - ((100 - Hum)/5.0));
-    setParameterValue("WEATHER_DP_DEP", Temp - Dp);
-    
-    WI::syncCriticalParameters();
-    
+    /***************************/
     // Update USB enable lights
+    /***************************/
+    // TODO lights are not updating
     USBlightsL[USB2].s = psctl.statusMap["USB2"].state ? IPS_OK : IPS_ALERT;
     USBlightsL[USB3].s = psctl.statusMap["USB3"].state ? IPS_OK : IPS_ALERT;
     USBlightsL[USB6].s = psctl.statusMap["USB6"].state ? IPS_OK : IPS_ALERT;
     IDSetLight(&USBlightsLP, nullptr);
     
+    /***************************/
     // Update Power enable lights
+    /***************************/
     PORTlightsL[OUT1].s = psctl.statusMap["Out1"].state ? IPS_OK : IPS_ALERT;
     PORTlightsL[OUT2].s = psctl.statusMap["Out2"].state ? IPS_OK : IPS_ALERT;
     PORTlightsL[OUT3].s = psctl.statusMap["Out3"].state ? IPS_OK : IPS_ALERT;
@@ -1198,12 +1320,16 @@ void PSpower::TimerHit()
     PORTlightsL[MP].s = psctl.statusMap["MP"].state ? IPS_OK : IPS_ALERT;
     IDSetLight(&PORTlightsLP, nullptr);
     
+    /***************************/
     // Dew enabled lights
+    /***************************/
     DEWlightsL[DEW1].s = (psctl.statusMap["Dew1"].setting > 0) ? IPS_OK : IPS_ALERT;
     DEWlightsL[DEW2].s = (psctl.statusMap["Dew2"].setting > 0) ? IPS_OK : IPS_ALERT;
     IDSetLight(&DEWlightsLP, nullptr);
     
+    /***************************/
     // Port Currents
+    /***************************/
     PortCurrentN[OUT1].value = psctl.statusMap["Out1"].current;
     PortCurrentN[OUT2].value = psctl.statusMap["Out2"].current;
     PortCurrentN[OUT3].value = psctl.statusMap["Out3"].current;
@@ -1212,18 +1338,24 @@ void PSpower::TimerHit()
     PortCurrentN[MP].value = psctl.statusMap["MP"].current;
     IDSetNumber(&PortCurrentNP, nullptr);
     
+    /***************************/
     // Update dew current fields
+    /***************************/
     DewCurrentN[DEW1].value = psctl.statusMap["Dew1"].current;
     DewCurrentN[DEW2].value = psctl.statusMap["Dew2"].current;
     DewCurrentN[MP].value = psctl.statusMap["MP"].levels;
     IDSetNumber(&DewCurrentNP, nullptr);
     
+    /***************************/
     // Update dew % power fields
+    /***************************/
     DewPowerN[DEW1].value = psctl.statusMap["Dew1"].setting;
     DewPowerN[DEW2].value = psctl.statusMap["Dew2"].setting;
     IDSetNumber(&DewPowerNP, nullptr);
     
+    /***************************/
     // Update variable voltage setting
+    /***************************/
     VarSettingN[0].value = psctl.statusMap["Var"].levels;
     IDSetNumber(&VarSettingNP, nullptr);
     
