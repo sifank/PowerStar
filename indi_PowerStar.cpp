@@ -313,26 +313,37 @@ bool PSpower::initProperties()
     IUFillTextVector(&USBLabelsTP, USBLabelsT, USB_N, getDeviceName(), "USB_LABELS", "Naming", USB_TAB, IP_WO, 60, IPS_IDLE);
     
     // USB 2 
-    memset(portLabel, 0, MAXINDILABEL);
-    portRC = IUGetConfigText(getDeviceName(), USBLabelsTP.name, USBLabelsT[USB2].name, portLabel, MAXINDILABEL);
-    IUFillSwitch(&USBpwS[PUSB2], "PUSB2", portRC == -1 ? "USB 2" : portLabel, psctl.statusMap["USB2"].state ? ISS_ON : ISS_OFF);
+    //memset(portLabel, 0, MAXINDILABEL);
+    //portRC = IUGetConfigText(getDeviceName(), USBLabelsTP.name, USBLabelsT[USB2].name, portLabel, MAXINDILABEL);
+    //IUFillSwitch(&USBpwS[PUSB2], "PSUSB2", portRC == -1 ? "USB 2" : portLabel, psctl.statusMap["USB2"].state ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&USBpwS[PUSB2], "PSUSB2", "USB 2", psctl.statusMap["USB2"].state ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&USBpwS[PUSB3], "PSUSB3", "USB 3", psctl.statusMap["USB3"].state ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&USBpwS[PUSB6], "PSUSB6", "USB 6", psctl.statusMap["USB6"].state ? ISS_ON : ISS_OFF);
+    IUFillSwitchVector(&USBpwSP, USBpwS, USBPW_N, getDeviceName(), "USB_ENABLES", "Power", USB_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    
+    IUFillLight(&USBlightsL[PUSB2], "LUSB2", "USB 2", psctl.statusMap["USB2"].state ? IPS_OK : IPS_ALERT);
+    IUFillLight(&USBlightsL[PUSB3], "LUSB3", "USB 3", psctl.statusMap["USB3"].state ? IPS_OK : IPS_ALERT);
+    IUFillLight(&USBlightsL[PUSB6], "LUSB6", "USB 6", psctl.statusMap["USB6"].state ? IPS_OK : IPS_ALERT);
+    IUFillLightVector(&USBlightsLP, USBlightsL, USBPW_N, getDeviceName(), "USB_PORT_LIGHTS", "Status", USB_TAB, IPS_IDLE);
+    
+    /**
     IUFillLight(&USBlightsL[PUSB2], "LUSB2", portRC == -1 ? "USB 2" : portLabel, IPS_OK);
     
     // USB 3
     memset(portLabel, 0, MAXINDILABEL);
     portRC = IUGetConfigText(getDeviceName(), USBLabelsTP.name, USBLabelsT[USB3].name, portLabel, MAXINDILABEL);
-    IUFillSwitch(&USBpwS[PUSB3], "PUSB3", portRC == -1 ? "USB 3" : portLabel, psctl.statusMap["USB3"].state ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&USBpwS[PUSB3], "PSUSB3", portRC == -1 ? "USB 3" : portLabel, psctl.statusMap["USB3"].state ? ISS_ON : ISS_OFF);
     IUFillLight(&USBlightsL[PUSB3], "LUSB3", portRC == -1 ? "USB 3" : portLabel, IPS_OK);
     
     // USB 6
     memset(portLabel, 0, MAXINDILABEL);
     portRC = IUGetConfigText(getDeviceName(), USBLabelsTP.name, USBLabelsT[USB6].name, portLabel, MAXINDILABEL);
-    IUFillSwitch(&USBpwS[PUSB6], "PUSB6", portRC == -1 ? "USB 6" : portLabel, psctl.statusMap["USB6"].state ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&USBpwS[PUSB6], "PSUSB6", portRC == -1 ? "USB 6" : portLabel, psctl.statusMap["USB6"].state ? ISS_ON : ISS_OFF);
     IUFillLight(&USBlightsL[PUSB6], "LUSB6", portRC == -1 ? "USB 6" : portLabel, IPS_OK);
+    **/
     
     
-    IUFillSwitchVector(&USBpwSP, USBpwS, USBPW_N, getDeviceName(), "USB_ENABLES", "Power", USB_TAB, IP_RO, ISR_NOFMANY, 60, IPS_IDLE);
-    IUFillLightVector(&USBlightsLP, USBlightsL, USBPW_N, getDeviceName(), "USB_PORT_LIGHTS", "Status", USB_TAB, IPS_IDLE);
+    
     
     // TODO add all-on/all-off button
     
@@ -787,15 +798,36 @@ bool PSpower::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
         // USB power switches
         if (strcmp(name, USBpwSP.name) == 0)
         {
+            //LOG_INFO("In USB power switch routine");
             IUUpdateSwitch(&USBpwSP, states, names, n);
             //TODO add test for success and update status flag
             // TODO status lights are not updating or is this even working?
-            if(!strcmp(names[PUSB2], USBpwS[PUSB2].name))
-                USBpwS[PUSB2].s ?  psctl.setPowerState("usb2", "yes") : psctl.setPowerState("usb2", "no");
+            int index = IUFindOnSwitchIndex(&USBpwSP);
+            LOGF_INFO("Switch pressed is: %i", index);
+            switch (index) {
+                case PUSB2:
+                    LOGF_INFO("USB 2 switch call for: %s", USBpwS[PUSB2].s ?  "On" : "Off");
+                    USBpwS[PUSB2].s ?  psctl.setPowerState("usb2", "yes") : psctl.setPowerState("usb2", "no");
+                    break;
+            
+                case PUSB3:
+                    LOGF_INFO("USB 3 switch call for: %s", USBpwS[PUSB3].s ?  "On" : "Off");
+                    USBpwS[PUSB3].s ?  psctl.setPowerState("usb3", "yes") : psctl.setPowerState("usb3", "no");
+                    break;
+                
+                case PUSB6: 
+                    LOGF_INFO("USB 6 switch call for: %s", USBpwS[PUSB6].s ?  "On" : "Off");
+                    USBpwS[PUSB6].s ?  psctl.setPowerState("usb6", "yes") : psctl.setPowerState("usb6", "no");
+                    break;
+            }
+            
+            
+            /**
             if(!strcmp(names[PUSB3], USBpwS[PUSB3].name))
                 USBpwS[PUSB3].s ?  psctl.setPowerState("usb3", "yes") : psctl.setPowerState("usb3", "no");
             if(!strcmp(names[PUSB6], USBpwS[PUSB6].name))
                 USBpwS[PUSB6].s ?  psctl.setPowerState("usb6", "yes") : psctl.setPowerState("usb6", "no");
+            **/
             
             USBpwSP.s = IPS_OK;  //TODO not turning green!
             IDSetSwitch(&USBpwSP, nullptr);

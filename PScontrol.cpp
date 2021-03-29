@@ -675,17 +675,6 @@ uint8_t* PSCTL::hidCMD(PS_COMMANDS hcmd, uint8_t hidArg1, uint8_t hidArg2, int n
     hidcmd[1] = hidArg1;
     hidcmd[2] = hidArg2;
     
-    // request Lock
-    lckFD = open(lockFile, O_WRONLY | O_CREAT, 0660);
-    if (lckFD == -1) {
-        hRes[0] = 0xff;
-        return hRes; // error
-    }   
-    if(flock(lckFD, LOCK_EX) != 0) {
-        hRes[0] = 0xff;
-        return hRes;  
-    }
-    
     handle = hid_open(0x4D8, 0xEC42, nullptr);
     if (handle == nullptr) {
         hRes[0] = 0xff;
@@ -717,14 +706,6 @@ uint8_t* PSCTL::hidCMD(PS_COMMANDS hcmd, uint8_t hidArg1, uint8_t hidArg2, int n
     hid_close(handle);
     hid_exit();
     
-    // free the lock
-    if(flock(lckFD, LOCK_UN) != 0) {
-        hRes[0] = 0xff;
-        return hRes;  //error
-    }
-        
-    close(lckFD);
-    
     return hRes;
 }
 
@@ -742,16 +723,16 @@ bool PSCTL::MoveAbsFocuser(uint32_t targetTicks)
 
     targetPosition = targetTicks;
     
-    uint8_t* hrc = hidCMD(PS_MTR_CMD, PS_GOTO, 0x00, 2);
+    response = hidCMD(PS_MTR_CMD, PS_GOTO, 0x00, 2);
 
-    if (hrc < 0)
+    if (response[1] == 0xff)
         return false;
 
     return true;
 }
 
 //******************************************************************
-bool PSCTL::setPosition(uint32_t ticks, uint8_t cmdCode)
+bool PSCTL::setPosition(uint32_t ticks)
 {    
     uint8_t setTicks1;
     uint8_t setTicks2;
@@ -820,7 +801,7 @@ bool PSCTL::getPosition(uint32_t *ticks, uint8_t cmdCode)
 //******************************************************************
 bool PSCTL::setAbsPosition(uint32_t ticks)
 {
-    return setPosition(ticks, PS_SET_POS);
+    return setPosition(ticks);
 }
 
 //******************************************************************
@@ -832,7 +813,7 @@ bool PSCTL::getAbsPosition(uint32_t *ticks)
 //******************************************************************
 bool PSCTL::setMaxPosition(uint32_t ticks)
 {
-    return setPosition(ticks, PS_SET_MAX);
+    return setPosition(ticks);
 }
 
 //******************************************************************

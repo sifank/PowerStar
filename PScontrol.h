@@ -219,7 +219,7 @@ class PSCTL
          * @param cmdCode 0x20 to set Absolute position. 0x22 to set Maximum position
          * @return True if successful, false otherwise.
          */
-        bool setPosition(uint32_t ticks, uint8_t cmdCode);
+        bool setPosition(uint32_t ticks);
 
         /**
          * @brief getPosition Get Position (Either Absolute or Maximum)
@@ -240,11 +240,7 @@ class PSCTL
         hid_device *handle { nullptr };
 
         // Driver Timeout in ms
-        static const uint16_t PS_TIMEOUT { 1000 };
-        
-        char lockFile[20] = "/var/lock/powerstar";
-        int  lckFD;
-        
+        static const uint16_t PS_TIMEOUT { 1000 };       
 
 };
 
