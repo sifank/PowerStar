@@ -80,6 +80,7 @@ private:
     uint32_t faultMask;
     char portLabel[MAXINDILABEL];
     int portRC;
+    int index;
     PS_MOTOR m_Motor { PS_NOT_MOVING };
     int32_t  simPosition { 0 };
     uint32_t maximumPosition = 0;
@@ -220,6 +221,33 @@ private:
     ILight PORTlightsL[POWER_N];
     ILightVectorProperty PORTlightsLP;
     
+    // Dew
+    enum
+    {
+        USB1,
+        USB2,
+        USB3,
+        USB4,
+        USB5,
+        USB6,
+        USB_N,
+    };
+    IText USBLabelsT[USB_N];
+    ITextVectorProperty USBLabelsTP;
+    
+    enum
+    {
+        PUSB2,
+        PUSB3,
+        PUSB6,
+        USBPW_N,
+    };
+    ISwitch USBpwS[USBPW_N];
+    ISwitchVectorProperty USBpwSP;
+    
+    ILight USBlightsL[USBPW_N];
+    ILightVectorProperty USBlightsLP;
+    
      enum
     {
         ABOUT1,
@@ -245,6 +273,7 @@ private:
     {
         DEW1,
         DEW2,
+        MPdew,
         DEW_N,
     };
     INumber DewPowerN[DEW_N];
@@ -261,30 +290,12 @@ private:
     
     enum
     {
-        USB1,
-        USB2,
-        USB3,
-        USB4,
-        USB5,
-        USB6,
-        USB_N,
+        USBAllOn,
+        USBAllOff,
+        USBAll_N,
     };
-    IText USBLabelsT[USB_N];
-    ITextVectorProperty USBLabelsTP;
-    
-    
-    enum
-    {
-        PUSB2,
-        PUSB3,
-        PUSB6,
-        USBPW_N,
-    };
-    ISwitch USBpwS[USBPW_N];
-    ISwitchVectorProperty USBpwSP;
-    
-    ILight USBlightsL[USBPW_N];
-    ILightVectorProperty USBlightsLP;
+    ISwitch USBAllS[USBAll_N];
+    ISwitchVectorProperty USBAllSP;
     
     // Faults    
     enum{
@@ -326,17 +337,17 @@ private:
     ILightVectorProperty FaultStatusLP;
     
     enum {
-       FS1OverUnder,
-        FS1TotalCurrent,
-        FS1Out1,
-        FS1Out2,
-        FS1Out3,
-        FS1Out4,
-        FS1DewA,
-        FS1DewB,
-        FaultStatus1_N,
+        FM1OverUnder,
+        FM1TotalCurrent,
+        FM1Out1,
+        FM1Out2,
+        FM1Out3,
+        FM1Out4,
+        FM1DewA,
+        FM1DewB,
+        FaultMask_N,
     };
-    ISwitch FaultMask1S[FaultStatus1_N];
+    ISwitch FaultMask1S[FaultMask_N];
     ISwitchVectorProperty FaultMask1SP;
     
     enum {     

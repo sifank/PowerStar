@@ -302,7 +302,6 @@ bool PSpower::initProperties()
     /***************/
     /* USB Tab     */
     /***************/
-    //TODO add naming as per power ports
     // USB Names
     IUFillText(&USBLabelsT[USB1], "USB1_NAME", "USB 1", "USB 1");
     IUFillText(&USBLabelsT[USB2], "USB2_NAME", "USB 2", "USB 2");
@@ -313,39 +312,30 @@ bool PSpower::initProperties()
     IUFillTextVector(&USBLabelsTP, USBLabelsT, USB_N, getDeviceName(), "USB_LABELS", "Naming", USB_TAB, IP_WO, 60, IPS_IDLE);
     
     // USB 2 
-    //memset(portLabel, 0, MAXINDILABEL);
-    //portRC = IUGetConfigText(getDeviceName(), USBLabelsTP.name, USBLabelsT[USB2].name, portLabel, MAXINDILABEL);
-    //IUFillSwitch(&USBpwS[PUSB2], "PSUSB2", portRC == -1 ? "USB 2" : portLabel, psctl.statusMap["USB2"].state ? ISS_ON : ISS_OFF);
-    IUFillSwitch(&USBpwS[PUSB2], "PSUSB2", "USB 2", psctl.statusMap["USB2"].state ? ISS_ON : ISS_OFF);
-    IUFillSwitch(&USBpwS[PUSB3], "PSUSB3", "USB 3", psctl.statusMap["USB3"].state ? ISS_ON : ISS_OFF);
-    IUFillSwitch(&USBpwS[PUSB6], "PSUSB6", "USB 6", psctl.statusMap["USB6"].state ? ISS_ON : ISS_OFF);
-    IUFillSwitchVector(&USBpwSP, USBpwS, USBPW_N, getDeviceName(), "USB_ENABLES", "Power", USB_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
-    
-    IUFillLight(&USBlightsL[PUSB2], "LUSB2", "USB 2", psctl.statusMap["USB2"].state ? IPS_OK : IPS_ALERT);
-    IUFillLight(&USBlightsL[PUSB3], "LUSB3", "USB 3", psctl.statusMap["USB3"].state ? IPS_OK : IPS_ALERT);
-    IUFillLight(&USBlightsL[PUSB6], "LUSB6", "USB 6", psctl.statusMap["USB6"].state ? IPS_OK : IPS_ALERT);
-    IUFillLightVector(&USBlightsLP, USBlightsL, USBPW_N, getDeviceName(), "USB_PORT_LIGHTS", "Status", USB_TAB, IPS_IDLE);
-    
-    /**
-    IUFillLight(&USBlightsL[PUSB2], "LUSB2", portRC == -1 ? "USB 2" : portLabel, IPS_OK);
+    memset(portLabel, 0, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), USBLabelsTP.name, USBLabelsT[USB2].name, portLabel, MAXINDILABEL);
+    IUFillSwitch(&USBpwS[PUSB2], "PSUSB2", portRC == -1 ? "USB 2" : portLabel, psctl.statusMap["USB2"].state ? ISS_ON : ISS_OFF);
+    IUFillLight(&USBlightsL[PUSB2], "LUSB2", portRC == -1 ? "USB 2" : portLabel, psctl.statusMap["USB2"].state ? IPS_OK : IPS_ALERT);
     
     // USB 3
     memset(portLabel, 0, MAXINDILABEL);
     portRC = IUGetConfigText(getDeviceName(), USBLabelsTP.name, USBLabelsT[USB3].name, portLabel, MAXINDILABEL);
     IUFillSwitch(&USBpwS[PUSB3], "PSUSB3", portRC == -1 ? "USB 3" : portLabel, psctl.statusMap["USB3"].state ? ISS_ON : ISS_OFF);
-    IUFillLight(&USBlightsL[PUSB3], "LUSB3", portRC == -1 ? "USB 3" : portLabel, IPS_OK);
+    IUFillLight(&USBlightsL[PUSB3], "LUSB3", portRC == -1 ? "USB 3" : portLabel, psctl.statusMap["USB3"].state ? IPS_OK : IPS_ALERT);
     
     // USB 6
     memset(portLabel, 0, MAXINDILABEL);
     portRC = IUGetConfigText(getDeviceName(), USBLabelsTP.name, USBLabelsT[USB6].name, portLabel, MAXINDILABEL);
     IUFillSwitch(&USBpwS[PUSB6], "PSUSB6", portRC == -1 ? "USB 6" : portLabel, psctl.statusMap["USB6"].state ? ISS_ON : ISS_OFF);
-    IUFillLight(&USBlightsL[PUSB6], "LUSB6", portRC == -1 ? "USB 6" : portLabel, IPS_OK);
-    **/
+    IUFillLight(&USBlightsL[PUSB6], "LUSB6", portRC == -1 ? "USB 6" : portLabel, psctl.statusMap["USB6"].state ? IPS_OK : IPS_ALERT);
     
-    
-    
-    
-    // TODO add all-on/all-off button
+    IUFillSwitchVector(&USBpwSP, USBpwS, USBPW_N, getDeviceName(), "USB_ENABLES", "Power", USB_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    IUFillLightVector(&USBlightsLP, USBlightsL, USBPW_N, getDeviceName(), "USB_PORT_LIGHTS", "Status", USB_TAB, IPS_IDLE);
+
+    // All On
+    IUFillSwitch(&USBAllS[USBAllOn], "ALL_ON", "All On", ISS_OFF);
+    IUFillSwitch(&USBAllS[USBAllOff], "ALL_OFF", "All Off", ISS_OFF);
+    IUFillSwitchVector(&USBAllSP, USBAllS, USBAll_N, getDeviceName(), "USBALL", "All", USB_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     
     /***************/
     /* DEW Tab     */
@@ -358,6 +348,7 @@ bool PSpower::initProperties()
     // Dew labels
     IUFillText(&DewLabelsT[DEW1], "DEW1_NAME", "Dew 1", "Dew 1");
     IUFillText(&DewLabelsT[DEW2], "DEW2_NAME", "Dew 2", "Dew 2");
+    IUFillText(&DewLabelsT[MPdew], "MPdew_NAME", "MP Dew", "MP Dew");
     IUFillTextVector(&DewLabelsTP, DewLabelsT, DEW_N, getDeviceName(), "DEWLABELS", "Naming", DEW_TAB, IP_WO, 60, IPS_IDLE);
     
     // Dew 1
@@ -375,11 +366,11 @@ bool PSpower::initProperties()
     IUFillNumber(&DewCurrentN[DEW2], "CDEW2", portRC == -1 ? "Dew 2" : portLabel, "%.2f", 0, 100, 1, 0);
    
     // MP Dew (if set)
-    //memset(portLabel, 0, MAXINDILABEL);
-    //portRC = IUGetConfigText(getDeviceName(), DewLabelsTP.name, DewLabelsT[VAR].name, portLabel, MAXINDILABEL);
-    //IUFillNumber(&DewPowerN[DEW2], "DEW2", "Dew2 % Power", "%.0f", 0, 100, 1, 0);
-    //IUFillLight(&DEWlightsL[DEW2], "LDEW2", "Dew 2", IPS_OK);
-    //IUFillNumber(&DewCurrentN[DEW2], "CDEW2", "Dew2", "%.2f", 0, 100, 1, 0);
+    memset(portLabel, 0, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), DewLabelsTP.name, DewLabelsT[MPdew].name, portLabel, MAXINDILABEL);
+    IUFillNumber(&DewPowerN[MPdew], "MPdew", "MP Dew % Power", "%.0f", 0, 100, 1, 0);
+    IUFillLight(&DEWlightsL[MPdew], "MPdew", "MP Dew", IPS_OK);
+    IUFillNumber(&DewCurrentN[MPdew], "MPdew", "MP Dew", "%.2f", 0, 100, 1, 0);
     
     IUFillNumberVector(&DewPowerNP, DewPowerN, DEW_N, getDeviceName(), "DEWPWR", "% Power", DEW_TAB, IP_RW, 60, IPS_IDLE);
     IUFillLightVector(&DEWlightsLP, DEWlightsL, DEW_N, getDeviceName(), "DEW_LIGHTS", "Status", DEW_TAB, IPS_OK);
@@ -449,15 +440,15 @@ bool PSpower::initProperties()
     IUFillSwitchVector(&FaultsClearSP, FaultsClearS, 1, getDeviceName(), "Clear_Faults", "Faults", FAULTS_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
     
     // Fault Mask field
-    IUFillSwitch(&FaultMask1S[FS1OverUnder], "FM1OverUnder", "In Ovr/Undr", ISS_ON);
-    IUFillSwitch(&FaultMask1S[FS1TotalCurrent], "FM1TotalCurrent", "Total Curr", ISS_ON);
-    IUFillSwitch(&FaultMask1S[FS1Out1], "FM1Out1", "Out1", ISS_ON);
-    IUFillSwitch(&FaultMask1S[FS1Out2], "FM1Out2", "Out2", ISS_ON);
-    IUFillSwitch(&FaultMask1S[FS1Out3], "FM1Out3", "Out3", ISS_ON);
-    IUFillSwitch(&FaultMask1S[FS1Out4], "FM1Out4", "Out4", ISS_ON);
-    IUFillSwitch(&FaultMask1S[FS1DewA], "FM1DewA", "DewA", ISS_ON);
-    IUFillSwitch(&FaultMask1S[FS1DewB], "FM1DewB", "DewB", ISS_ON);
-    IUFillSwitchVector(&FaultMask1SP, FaultMask1S, FaultStatus1_N, getDeviceName(), "FAULTMASK1", "Ignore Fault", FAULTS_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    IUFillSwitch(&FaultMask1S[FM1OverUnder], "FM1OverUnder", "In Ovr/Undr", ISS_ON);
+    IUFillSwitch(&FaultMask1S[FM1TotalCurrent], "FM1TotalCurrent", "Total Curr", ISS_ON);
+    IUFillSwitch(&FaultMask1S[FM1Out1], "FM1Out1", "Out1", ISS_ON);
+    IUFillSwitch(&FaultMask1S[FM1Out2], "FM1Out2", "Out2", ISS_ON);
+    IUFillSwitch(&FaultMask1S[FM1Out3], "FM1Out3", "Out3", ISS_ON);
+    IUFillSwitch(&FaultMask1S[FM1Out4], "FM1Out4", "Out4", ISS_ON);
+    IUFillSwitch(&FaultMask1S[FM1DewA], "FM1DewA", "DewA", ISS_ON);
+    IUFillSwitch(&FaultMask1S[FM1DewB], "FM1DewB", "DewB", ISS_ON);
+    IUFillSwitchVector(&FaultMask1SP, FaultMask1S, FaultMask_N, getDeviceName(), "FAULTMASK1", "Ignore Fault", FAULTS_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
     
     IUFillSwitch(&FaultMask2S[FS2VarVoltage], "FM2VarVoltage", "VAR", ISS_ON);
     IUFillSwitch(&FaultMask2S[FS2FMP], "FM2FMP", "MP", ISS_ON);
@@ -557,8 +548,8 @@ bool PSpower::updateProperties()
         defineNumber(&PowerLEDNP);
         defineNumber(&VarSettingNP);
         defineSwitch(&MPtypeSP);
-        int Index = psctl.statusMap["MP"].setting;
-        switch(Index) {
+        index = psctl.statusMap["MP"].setting;
+        switch(index) {
             case DC : {
                 deleteProperty(MPpwmNP.name);
                 deleteProperty(MPdewNP.name);
@@ -589,6 +580,7 @@ bool PSpower::updateProperties()
         // USB tab
         defineSwitch(&USBpwSP);
         defineLight(&USBlightsLP);
+        defineSwitch(&USBAllSP);
         defineText(&USBLabelsTP);
         
         // DEW tab
@@ -652,6 +644,7 @@ bool PSpower::updateProperties()
         deleteProperty(USBLabelsTP.name);
         deleteProperty(USBlightsLP.name);
         deleteProperty(USBpwSP.name);
+        deleteProperty(USBAllSP.name);
         
         // DEW tab
         deleteProperty(DewPowerNP.name);
@@ -798,39 +791,68 @@ bool PSpower::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
         // USB power switches
         if (strcmp(name, USBpwSP.name) == 0)
         {
-            //LOG_INFO("In USB power switch routine");
             IUUpdateSwitch(&USBpwSP, states, names, n);
-            //TODO add test for success and update status flag
-            // TODO status lights are not updating or is this even working?
-            int index = IUFindOnSwitchIndex(&USBpwSP);
-            LOGF_INFO("Switch pressed is: %i", index);
-            switch (index) {
-                case PUSB2:
-                    LOGF_INFO("USB 2 switch call for: %s", USBpwS[PUSB2].s ?  "On" : "Off");
-                    USBpwS[PUSB2].s ?  psctl.setPowerState("usb2", "yes") : psctl.setPowerState("usb2", "no");
-                    break;
-            
-                case PUSB3:
-                    LOGF_INFO("USB 3 switch call for: %s", USBpwS[PUSB3].s ?  "On" : "Off");
-                    USBpwS[PUSB3].s ?  psctl.setPowerState("usb3", "yes") : psctl.setPowerState("usb3", "no");
-                    break;
-                
-                case PUSB6: 
-                    LOGF_INFO("USB 6 switch call for: %s", USBpwS[PUSB6].s ?  "On" : "Off");
-                    USBpwS[PUSB6].s ?  psctl.setPowerState("usb6", "yes") : psctl.setPowerState("usb6", "no");
-                    break;
-            }
-            
-            
-            /**
+
+            if(!strcmp(names[PUSB2], USBpwS[PUSB2].name))
+                USBpwS[PUSB2].s ?  psctl.setPowerState("usb2", "yes") : psctl.setPowerState("usb2", "no");
             if(!strcmp(names[PUSB3], USBpwS[PUSB3].name))
                 USBpwS[PUSB3].s ?  psctl.setPowerState("usb3", "yes") : psctl.setPowerState("usb3", "no");
             if(!strcmp(names[PUSB6], USBpwS[PUSB6].name))
                 USBpwS[PUSB6].s ?  psctl.setPowerState("usb6", "yes") : psctl.setPowerState("usb6", "no");
-            **/
             
-            USBpwSP.s = IPS_OK;  //TODO not turning green!
+            USBpwSP.s = IPS_OK;
             IDSetSwitch(&USBpwSP, nullptr);
+            
+            // Set the all on/off switches back to off 'cus we are doing one on one
+            USBAllS[USBAllOn].s = ISS_OFF;
+            USBAllS[USBAllOff].s = ISS_OFF;
+            IDSetSwitch(&USBAllSP, nullptr);
+            return true;
+        }
+        
+        // USB all on/off switches
+        if (strcmp(name, USBAllSP.name) == 0)
+        {
+            IUUpdateSwitch(&USBAllSP, states, names, n);
+            
+            // All On
+            if(IUFindOnSwitchIndex(&USBAllSP) == USBAllOn) 
+            {
+                //for loop to set all switch states on
+                for (int i=0; i < USBPW_N; i++)
+                    USBpwS[i].s = ISS_ON;
+                IDSetSwitch(&USBpwSP, nullptr);
+                
+                //now set the usb's to on
+                psctl.setPowerState("usb2", "yes");
+                psctl.setPowerState("usb3", "yes");
+                psctl.setPowerState("usb6", "yes");
+                
+                USBAllS[USBAllOn].s = ISS_ON;
+                USBAllS[USBAllOff].s = ISS_OFF;
+            }
+            
+            // All Off
+            else if(IUFindOnSwitchIndex(&USBAllSP) == USBAllOff)
+            {
+                IUResetSwitch(&USBAllSP);
+                
+                //for loop to set all switch states on
+                for (int i=0; i < USBPW_N; i++)
+                    USBpwS[i].s = ISS_OFF;
+                IDSetSwitch(&USBpwSP, nullptr);
+                
+                // now set the usb's to off
+                psctl.setPowerState("usb2", "no");
+                psctl.setPowerState("usb3", "no");
+                psctl.setPowerState("usb6", "no");
+                
+                USBAllS[USBAllOn].s = ISS_OFF;
+                USBAllS[USBAllOff].s = ISS_ON;
+            }
+            
+            USBAllSP.s = IPS_OK;
+            IDSetSwitch(&USBAllSP, nullptr);
             return true;
         }
         
@@ -875,9 +897,9 @@ bool PSpower::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
         {
             IUUpdateSwitch(&MPtypeSP, states, names, n);
             
-            int Index = IUFindOnSwitchIndex(&MPtypeSP);
-            psctl.setMultiPort(Index);
-            switch(Index) {
+            index = IUFindOnSwitchIndex(&MPtypeSP);
+            psctl.setMultiPort(index);
+            switch(index) {
                 case DC : {
                     deleteProperty(MPpwmNP.name);
                     deleteProperty(MPdewNP.name);
@@ -1221,6 +1243,7 @@ bool PSpower::saveConfigItems(FILE *fp)
     IUSaveConfigText(fp, &PortLabelsTP);
     IUSaveConfigText(fp, &USBLabelsTP);
     IUSaveConfigText(fp, &DewLabelsTP);
+    IUSaveConfigSwitch(fp, &USBpwSP);
     IUSaveConfigNumber(fp, &FaultMaskNP);
     IUSaveConfigSwitch(fp, &AutoBootSP);
     IUSaveConfigSwitch(fp, &ProfileDevSP);
@@ -1240,6 +1263,7 @@ void PSpower::ISGetProperties(const char *dev)
     DefaultDevice::ISGetProperties(dev);
     loadConfig(true, PortLabelsTP.name);
     loadConfig(true, USBLabelsTP.name);
+    loadConfig(true, USBpwSP.name);
     loadConfig(true, DewLabelsTP.name);
     loadConfig(true, FaultMaskNP.name);
     loadConfig(true, AutoBootSP.name);
@@ -1286,6 +1310,7 @@ void PSpower::TimerHit()
     
     PSpower::checkFaults();
     
+    //PSpower::updateWeather();
     
     /***************************/
     /**  handle focus update  **/
@@ -1309,9 +1334,9 @@ void PSpower::TimerHit()
         IDSetNumber(&FocusAbsPosNP, nullptr);
     }
     
-    /***************************/
+    /**************************************/
     //Update sensor data (volts/amps/watts)
-    /***************************/
+    /**************************************/
     VoltsIn = psctl.statusMap["IN"].levels;
     AmpsIn = psctl.statusMap["IN"].current;
     
@@ -1335,9 +1360,9 @@ void PSpower::TimerHit()
     // Update USB enable lights
     /***************************/
     // TODO lights are not updating
-    USBlightsL[USB2].s = psctl.statusMap["USB2"].state ? IPS_OK : IPS_ALERT;
-    USBlightsL[USB3].s = psctl.statusMap["USB3"].state ? IPS_OK : IPS_ALERT;
-    USBlightsL[USB6].s = psctl.statusMap["USB6"].state ? IPS_OK : IPS_ALERT;
+    USBlightsL[PUSB2].s = psctl.statusMap["USB2"].state ? IPS_OK : IPS_ALERT;
+    USBlightsL[PUSB3].s = psctl.statusMap["USB3"].state ? IPS_OK : IPS_ALERT;
+    USBlightsL[PUSB6].s = psctl.statusMap["USB6"].state ? IPS_OK : IPS_ALERT;
     IDSetLight(&USBlightsLP, nullptr);
     
     /***************************/
