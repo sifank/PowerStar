@@ -149,8 +149,8 @@ bool PSpower::initProperties()
     IUFillSwitchVector(&PowerClearSP, PowerClearS, 1, getDeviceName(), "Reset AmpHrs/Watts Field", "Power", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
     
     // Turn on profiled devices
-    IUFillSwitch(&TurnAllProfileS[0], "PROFILE_ON", "Profile On", ISS_OFF);
-    IUFillSwitchVector(&TurnAllProfileSP, TurnAllProfileS, 1, getDeviceName(), "Turn on profile devices", "Profile", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
+    //IUFillSwitch(&TurnAllProfileS[0], "PROFILE_ON", "Profile On", ISS_OFF);
+    //IUFillSwitchVector(&TurnAllProfileSP, TurnAllProfileS, 1, getDeviceName(), "Turn on profile devices", "Profile", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
     
     // Turn everything off
     IUFillSwitch(&TurnAllOffS[0], "TURN_ALL_OFF", "All Off", ISS_OFF);
@@ -252,6 +252,7 @@ bool PSpower::initProperties()
     IUFillSwitchVector(&AutoBootSP, AutoBootS, AutoBoot_N, getDeviceName(), "AUTOBOOT_ENABLES", "Autoboot", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
     
     // Profile devices
+	/**
     IUFillSwitch(&ProfileDevS[ABOUT1], "P_PORT1", "Port1", ISS_OFF);
     IUFillSwitch(&ProfileDevS[ABOUT2], "P_PORT2", "Port2", ISS_OFF);
     IUFillSwitch(&ProfileDevS[ABOUT3], "P_PORT3", "Port3", ISS_OFF);
@@ -266,7 +267,8 @@ bool PSpower::initProperties()
     IUFillSwitch(&ProfileDevS[ABUSB3], "P_USB3", "Usb3", ISS_OFF);
     IUFillSwitch(&ProfileDevS[ABUSB6], "P_USB6", "Usb6", ISS_OFF);
     IUFillSwitchVector(&ProfileDevSP, ProfileDevS, AutoBoot_N, getDeviceName(), "PROFILE_ENABLES", "Profile Devices", OPTIONS_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
-    
+    **/
+	
     // Variable port voltage setting
     IUFillNumber(&VarSettingN[0], "VAR_SETTING", "Volts", "%4.1f", 3, 10, 0.1, 0);
     IUFillNumberVector(&VarSettingNP, VarSettingN, 1, getDeviceName(), "Volts", "Variable Port", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
@@ -567,7 +569,7 @@ bool PSpower::updateProperties()
         defineNumber(&PowerSensorsNP);
         defineSwitch(&PowerClearSP);
         defineNumber(&WEATHERNP);
-        defineSwitch(&TurnAllProfileSP);
+        //defineSwitch(&TurnAllProfileSP);
         defineSwitch(&TurnAllOffSP);
         defineSwitch(&RebootSP);
         
@@ -584,7 +586,7 @@ bool PSpower::updateProperties()
         defineSwitch(&MotorBrkSP);
         defineNumber(&MtrProfNP);
         defineSwitch(&AutoBootSP);
-        defineSwitch(&ProfileDevSP);
+        //defineSwitch(&ProfileDevSP);
         defineNumber(&PowerLEDNP);
         defineNumber(&VarSettingNP);
         defineSwitch(&MPtypeSP);
@@ -653,7 +655,7 @@ bool PSpower::updateProperties()
         deleteProperty(PowerSensorsNP.name);
         deleteProperty(WEATHERNP.name);
         deleteProperty(PowerClearSP.name);
-        deleteProperty(TurnAllProfileSP.name);
+        //deleteProperty(TurnAllProfileSP.name);
         deleteProperty(TurnAllOffSP.name);
         deleteProperty(RebootSP.name);
         
