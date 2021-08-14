@@ -1365,20 +1365,20 @@ bool PSpower::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             index = IUFindOnSwitchIndex(&TemplateSP);
             
             switch(index) {
+		case PDMS : {
+                    curProfile = PowerStarProfile{1, 2, 0, 8, 64, 2.2, 50000, 25000, 10.0, 0.0, 0, false, true, 0, 1};
+                    psctl.setProfileStatus(curProfile);
+                    LOG_INFO("Focus motor profile set to PDMS");
+                    break;
+                }
+         
                 case HSM : {
                     curProfile = PowerStarProfile{0, 1, 0, 8, 80, 1.5, 50000, 25000, 10.0, 0.0, 0, false, true, 0, 1};
                     psctl.setProfileStatus(curProfile);
                     LOG_INFO("Focus motor profile set to HSM");
                     break;
                 }
-                
-                case PDMS : {
-                    curProfile = PowerStarProfile{1, 2, 0, 8, 64, 2.2, 50000, 25000, 10.0, 0.0, 0, false, true, 0, 1};
-                    psctl.setProfileStatus(curProfile);
-                    LOG_INFO("Focus motor profile set to PDMS");
-                    break;
-                }
-                
+              
                 case UNI12 : {
                     curProfile = PowerStarProfile{2, 5, 0, 32, 0, 5.0, 50000, 25000, 10.0, 0.0, 1, false, true, 0, 0};
                     psctl.setProfileStatus(curProfile);
