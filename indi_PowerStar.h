@@ -7,10 +7,6 @@
 ***********************************************************************/
 #pragma once
 
-//#include <iostream>
-//#include <memory>
-//#include <map>
-//#include <cmath>
 #include <string.h>
 #include <stdio.h>
 #include <defaultdevice.h>
@@ -67,15 +63,22 @@ private:
     bool setPosition(uint32_t ticks, uint8_t cmdCode);
     bool getPosition(uint32_t *ticks, uint8_t cmdCode);
     uint32_t checkFaults();
+    float lastTemp = 0;
+    float lastHum = 0;
+    float lastDpDep = 0;
+    bool critWeather = false;
     
     float   Temp;
     float   Hum;
     float   DewPt;
-    float   Dep;
+    float   DpDep;
     float   VoltsIn;
     float   AmpsIn;
     float   AmpHrs;
     float   WattHrs;
+    float   perpwr = 0;
+    float   lastDew1PerPwr = 0;
+    float   lastDew2PerPwr = 0;
     uint32_t faults;
     uint32_t faultMask;
     char portLabel[MAXINDILABEL];
@@ -94,6 +97,8 @@ private:
             HSM,
             PDMS,
             UNI12,
+            CUST,
+            NOTSET,
             Template_N,
         };
         ISwitch TemplateS[Template_N];
@@ -134,6 +139,15 @@ private:
         };
         ISwitch TempCompS[TempComp_N];
         ISwitchVectorProperty TempCompSP;
+        
+        enum {
+            MCnone,
+            MClow,
+            MCidle,
+            MotorBrk_N,
+        };
+        ISwitch MotorBrkS[MotorBrk_N];
+        ISwitchVectorProperty MotorBrkSP;
         
         enum {
             Backlash,
@@ -271,13 +285,13 @@ private:
     
     enum
     {
-        DEW1,
+        DEW1, // these two must remain 0 and 1 for low level hidcmd call
         DEW2,
         MPdew,
         DEW_N,
     };
-    INumber DewPowerN[DEW_N];
-    INumberVectorProperty DewPowerNP;
+    INumber DEWpercentN[DEW_N];
+    INumberVectorProperty DEWpercentNP;
     
     IText DewLabelsT[DEW_N];
     ITextVectorProperty DewLabelsTP;
@@ -288,6 +302,12 @@ private:
     INumber DewCurrentN[DEW_N];
     INumberVectorProperty DewCurrentNP;
     
+    ISwitch DEWpwS[DEW_N];
+    ISwitchVectorProperty DEWpwSP;
+    
+    ISwitch AutoDewS[DEW_N];
+    ISwitchVectorProperty AutoDewSP;
+    
     enum
     {
         USBAllOn,
@@ -296,6 +316,16 @@ private:
     };
     ISwitch USBAllS[USBAll_N];
     ISwitchVectorProperty USBAllSP;
+    
+    enum
+    {
+        DEWAllOn,
+        DEWAllOff,
+        DEWAUTO,
+        DEWAll_N,
+    };
+    ISwitch DewAllS[DEWAll_N];
+    ISwitchVectorProperty DewAllSP;
     
     // Faults    
     enum{
@@ -413,17 +443,30 @@ private:
     ISwitch RebootS[0];
     ISwitchVectorProperty RebootSP;
     
+    
+    // this is used to save values between invocations (non displayed values)
+    enum {
+        VarVolts, // TODO but do we need this one?
+        Dew1Percent,
+        Dew2Percent,
+        LastDew1Auto,
+        LastDew2Auto,
+        LastDewMPAuto, // TODO
+        MPdewPercent,  // TODO
+        MPpwmPercent,  // TODO
+        LEDbrightness,  // TODO but do we need this one?
+        NoneDisplay_N,
+    };
+    INumber NoneDisplayN[NoneDisplay_N];
+    INumberVectorProperty NoneDisplayNP;
+    
     PowerStarProfile curProfile;
     
     static constexpr const char *POWER_TAB {"Power"};
     static constexpr const char *USB_TAB {"USB"};
     static constexpr const char *DEW_TAB {"DEW"};
-    static constexpr const char *FIRMWARE_TAB {"Firmware"};
     static constexpr const char *FAULTS_TAB {"Faults"};
-    static constexpr const char *FAULTMASK_TAB {"Fault Mask"};
     static constexpr const char *USRLIMIT_TAB {"User Limits"};
-    static constexpr const char *SETTINGS_TAB {"Naming"};
-    static constexpr const char *FOCUS {"Focus"};
     static constexpr const char *ENVIRONMENT_TAB {"Environment"};
 };
 

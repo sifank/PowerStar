@@ -84,26 +84,27 @@ bool PSCTL::getStatus()
     response = hidCMD(PS_PORT_STATUS, 0x00, 0x00, 3);
         
     statusMap["Out1"].state = (response[1] & 0x01);
-    statusMap["USB1"].state = (response[2] & 0x01);
     statusMap["Out2"].state = (response[1] & 0x02);
-    statusMap["USB2"].state = (response[2] & 0x02);
     statusMap["Out3"].state = (response[1] & 0x04);
-    statusMap["USB3"].state = (response[2] & 0x04);
     statusMap["Out4"].state = (response[1] & 0x08);
-    statusMap["USB4"].state = (response[2] & 0x08);
-    statusMap["Var"].state = (response[1] & 0x40);
-    statusMap["USB5"].state = (response[2] & 0x10);
-    statusMap["MP"].state = (response[1] & 0x80);
-    statusMap["USB6"].state = (response[2] & 0x20);
+    statusMap["Var"].state  = (response[1] & 0x40);
+    statusMap["MP"].state   = (response[1] & 0x80);
 
+    statusMap["USB1"].state = (response[2] & 0x01);
+    statusMap["USB2"].state = (response[2] & 0x02);
+    statusMap["USB3"].state = (response[2] & 0x04);
+    statusMap["USB4"].state = (response[2] & 0x08);
+    statusMap["USB5"].state = (response[2] & 0x10);
+    statusMap["USB6"].state = (response[2] & 0x20);
+    
     // Dew
     response = hidCMD(PS_DEW_STATUS, 0x00, 0x00, 3);
     statusMap["Dew1"].setting = response[2];
-    statusMap["Dew1"].state = (response[2] > 0);
+    statusMap["Dew1"].state = (response[2] > 0);  // TODO change to independent percent and on/off
     
     response = hidCMD(PS_DEW_STATUS, 0x01, 0x00, 3);
     statusMap["Dew2"].setting = response[2];
-    statusMap["Dew2"].state = (response[2] > 0);
+    statusMap["Dew2"].state = (response[2] > 0);  // TODO see above
 
     // Voltages
     response = hidCMD(PS_VOLTS, 0, 0x00, 3);
@@ -307,63 +308,140 @@ void PSCTL::setUserLimitStatus(float usrlimit[12])
 //***************************************************************
 PowerStarProfile PSCTL::getProfileStatus() 
 {
+        // PowerStarProfile =   profile Type (0:hsm, 1:pdms, 2:uni12, 3:custom, 4:unset) 
+        //                      backlash 
+        //                      preferred direction (0:in, 1:out)
+        //                      idle current 
+        //                      drive current 
+        //                      step period 
+        //                      focus maximum position 
+        //                      focus current position 
+        //                      temperature Coefficient (0:disabled, else 8.8 format) 
+        //                      temperature Hysterisis 
+        //                      temp Sensor (0:disabled, 1:motor, 2:env) 
+        //                      reverse Mtr
+        //                      disable Perminent Focus
+        //                      motor Type (0:unipolar, 1:bipolar) 
     PowerStarProfile actProfile;
-    strncpy(actProfile.name, "Actual", sizeof(actProfile.name));
     
+    // Backlash and Preferred backlash direction
     response = hidCMD(PS_GET_BACKLASH, 0, 0, 3);
     actProfile.backlash = response[1]; 
     actProfile.prefDir = response[2];
     
+    // Idle and Drive currents
     response = hidCMD(PS_GET_MTRCUR, 0, 0, 3);
-    actProfile.idleMtrCurrent = response[1];
+    actProfile.idleMtrCurrent = response[1]; 
     actProfile.driveMtrCurrent = response[2];
     
+    // Step Period
     response = hidCMD(PS_GET_SPERIOD, 0, 0, 2);
     actProfile.stepPeriod = response[1] / 10;
     
+    // Curent and Max focuser positions
     getPosition(&actProfile.curPosition, PS_GET_POS);
     getPosition(&actProfile.maxPosition, PS_GET_MAX);
 
-    response = hidCMD(PS_GET_TMPCO, 0, 0, 3);
+    // Temp Coefficient
+    response = hidCMD(PS_GET_TMPCOEF, 0, 0, 3);   // 0: disabled else 8.8 format
     float lbyte = response[1];
     actProfile.tempCoef = response[2] + (lbyte / 256);
     
+    // Hysterisis
     response = hidCMD(PS_GET_HYS, 0, 0, 2);
     actProfile.tempHysterisis = response[1] / 10;
     
+    // Temperature compensation (which sensor to use)
     response = hidCMD(PS_GET_TCOMP, 0, 0, 2);
-    actProfile.tempSensor = response[1];
+    actProfile.tempSensor = response[1];   // 0:Disable 1:Motor 2:Ext Sensor
     
+    // Reverse Motor
     response = hidCMD(PS_GET_MTRPOL, 0, 0, 2);
-    actProfile.reverseMtr = response[1];
+    actProfile.reverseMtr = response[1];  // 0:Normal, 1:Reverse
     
-    actProfile.disablePermFocus = 0;
+    //actProfile.disablePermFocus = 0;  //ATTENTION maybe not implement this here ??
     
-    response = hidCMD(PS_GET_MTRPOL, 0, 0, 3);
-    actProfile.motorBraking = 0;    // 0:None 1:Low 2:Normal
-    
+    // Motor type 
     response = hidCMD(PS_GET_MTR_LED, 0, 0, 3);
-    actProfile.motorType = response[2];
-    
-    response = hidCMD(PS_GET_MTRLCK, 0, 0, 3);
-    actProfile.faultMask = 0;
-    strncpy(actProfile.out1, "", sizeof(actProfile.out1));
-    strncpy(actProfile.out2, "", sizeof(actProfile.out2));
-    strncpy(actProfile.out3, "", sizeof(actProfile.out3));
-    strncpy(actProfile.out4, "", sizeof(actProfile.out4));
-    strncpy(actProfile.dew1, "", sizeof(actProfile.dew1));
-    strncpy(actProfile.dew2, "", sizeof(actProfile.dew2));
-    strncpy(actProfile.var, "", sizeof(actProfile.var));
-    strncpy(actProfile.mp, "", sizeof(actProfile.mp));
-    strncpy(actProfile.usb1, "", sizeof(actProfile.usb1));
-    strncpy(actProfile.usb2, "", sizeof(actProfile.usb2));
-    strncpy(actProfile.usb3, "", sizeof(actProfile.usb3));
-    strncpy(actProfile.usb4, "", sizeof(actProfile.usb4));
-    strncpy(actProfile.usb5, "", sizeof(actProfile.usb5));
-    strncpy(actProfile.usb6, "", sizeof(actProfile.usb6));
-    
+    actProfile.motorType = response[2];  //0:unipolar, 1:bipolar
+
     
     return actProfile;
+}
+
+//***************************************************************
+bool PSCTL::setProfileStatus(PowerStarProfile psProfile)
+{    
+        // PowerStarProfile =   profile Type (0:hsm, 1:pdms, 2:uni12, 3:custom, 4:unset) 
+        //                      backlash 
+        //                      preferred direction (0:in, 1:out)
+        //                      idle current 
+        //                      drive current 
+        //                      step period 
+        //                      focus maximum position 
+        //                      focus current position 
+        //                      temperature Coefficient (0:disabled, else 8.8 format) 
+        //                      temperature Hysterisis 
+        //                      temp Sensor (0:disabled, 1:motor, 2:env) 
+        //                      reverse Mtr
+        //                      disable Perminent Focus
+        //                      motor Type (0:unipolar, 1:bipolar) 
+    
+    
+    
+    // Set reverse motor
+    response = hidCMD(PS_SET_MTRPOL, psProfile.reverseMtr, 0x00, 2);
+    if (response[1] == 0xff)
+        return false;
+    
+    // Backlash amount and preferred direction
+    hidCMD(PS_SET_BACKLASH, psProfile.backlash, psProfile.prefDir, 3);
+    
+    // Motor idle and drive current
+    response = hidCMD(PS_SET_MTRCUR, psProfile.idleMtrCurrent, psProfile.driveMtrCurrent, 3);
+    if (response[1] == 0xff || response[2] == 0xff)
+        return false;
+    
+    // Step Period
+    response = hidCMD(PS_SET_SPERIOD, (uint8_t)(psProfile.stepPeriod * 10), 0x00, 2);
+    if (response[1] == 0xff)
+        return false;
+   
+    // focus min/max not to be set here
+ 
+    // temperature coefficient
+    uint8_t hbyte = (psProfile.tempCoef);
+    uint8_t lbyte = (psProfile.tempCoef - hbyte) * 256;
+    hidCMD(PS_SET_TMPCOEF, lbyte, hbyte, 3);
+    
+    // hysteresis
+    response = hidCMD(PS_SET_HYS, (uint8_t)(psProfile.tempHysterisis * 10), 0x00, 2);
+    if (response[1] == 0xff)
+        return false;
+
+    // temperature compensation - which sensor to use 0=disabled, 1=motor, 2=env
+    response = hidCMD(PS_SET_TCOMP, psProfile.tempSensor, 0x00, 2);
+    if (response[1] == 0xff)
+        return false;
+    
+    // reverse motor
+    response = hidCMD(PS_SET_MTRPOL, psProfile.reverseMtr, 0, 2);
+    if (response[1] == 0xff)
+        return false;
+    
+    // Set Motor Type
+    // need to read in status first, then set mtr type and put back
+    //keep response[1] as that sets Mp and LED modes
+    response = hidCMD(PS_GET_MTR_LED, 0x00, 0x00, 3);
+    response = hidCMD(PS_SET_MTR_LED, response[1], psProfile.motorType, 3);
+    if (response[1] == 0xff)
+        return false;
+    
+    // motor breaking
+    if ( ! saveDewPwmFault(psProfile))
+        return false;
+    
+    return true;
 }
 
 //******************************************************************
@@ -371,7 +449,7 @@ PowerStarProfile PSCTL::getProfileStatus()
 //******************************************************************
 
 //******************************************************************
-// Turns ports/usb on or off
+// Turns ports/usb on or off, device in lower case, action is yes or no
 bool PSCTL::setPowerState(const string &device, const string &action)
 {
     uint8_t portCtl;
@@ -545,61 +623,6 @@ bool PSCTL::setLED(uint8_t brightness)
     if (response[1] == 0xff) {
         return false;
     }
-    return true;
-}
-
-//***************************************************************
-bool PSCTL::activateProfile(PowerStarProfile psProfile)
-{    
-    // Set Motor Type
-    // need to read in status first, then set mtr type and put back
-    //keep response[1] as that sets Mp and LED modes
-    response = hidCMD(PS_GET_MTR_LED, 0x00, 0x00, 3);
-    response = hidCMD(PS_SET_MTR_LED, response[1], psProfile.motorType, 3);
-    if (response[1] == 0xff)
-        return false;
-    
-    // Set reverse motor
-    response = hidCMD(PS_SET_MTRPOL, psProfile.reverseMtr, 0x00, 2);
-    if (response[1] == 0xff)
-        return false;
-    
-    // Backlash amount and preferred direction
-    hidCMD(PS_SET_BACKLASH, psProfile.backlash, psProfile.prefDir, 3);
-    
-    // Unlocking the Motor
-    response = hidCMD(PS_SET_MTRLCK, 0x5a, psProfile.motorBraking, 3);
-    if (response[1] == 0xff)
-        return false;
-    
-    // Set temperature compensation 0=disabled, 1=motor, 2=env
-    response = hidCMD(PS_SET_TCOMP, psProfile.tempSensor, 0x00, 2);
-    if (response[1] == 0xff)
-        return false;
-    
-    // Temp compensation temperature coefficient
-    uint8_t hbyte = (psProfile.tempCoef);
-    uint8_t lbyte = (psProfile.tempCoef - hbyte) * 256;
-    hidCMD(PS_SET_TMPCO, lbyte, hbyte, 3);
-    
-    // Temp compensation hysteresis
-    response = hidCMD(PS_SET_HYS, (uint8_t)(psProfile.tempHysterisis * 10), 0x00, 2);
-    if (response[1] == 0xff)
-        return false;
-
-    // Step Period
-    response = hidCMD(PS_SET_SPERIOD, (uint8_t)(psProfile.stepPeriod * 10), 0x00, 2);
-    if (response[1] == 0xff)
-        return false;
-        
-    // Motor idle and drive current
-    response = hidCMD(PS_SET_MTRCUR, psProfile.idleMtrCurrent, psProfile.idleMtrCurrent, 3);
-    if (response[1] == 0xff || response[2] == 0xff)
-        return false;
-    
-    if ( ! saveDewPwmFault(psProfile))
-        return false;
-    
     return true;
 }
     

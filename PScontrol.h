@@ -1,17 +1,12 @@
 /********************************************************
 *  Program:      PScontrol.h
-*  Version:      20210305
+*  Version:      20210420
 *  Author:       Sifan S. Kahale
 *  Description:  Power*Star control .h file
 *********************************************************/
 
 #pragma once
 
-//#include <cmath>
-//#include <memory>
-//#include <iostream>
-//#include <algorithm>
-//#include <iterator>
 #include "hidapi.h"
 #include <map>
 #include <vector>
@@ -31,7 +26,7 @@ using namespace std;
 #define BITMASK_CHECK_ANY(x,y) ((x) & (y)) 
 
 typedef struct {
-            char     name[11];
+            uint8_t  profType;         // 0:hsm, 1:pdms, 2:uni12, 3:custom, 4:unset
             uint16_t backlash;
             uint8_t  prefDir;          //0:in 1:out
             uint8_t  idleMtrCurrent;
@@ -44,23 +39,9 @@ typedef struct {
             uint8_t  tempSensor;       // 0:Disabled 1:Motor 2:Env
             bool     reverseMtr;
             bool     disablePermFocus;
-            uint8_t  motorBraking;    // 0:None 1:Low 2:Idle
+            uint8_t  motorBraking;    // applies when mtr is locked 0:None 1:Low 2:Idle
             uint8_t  motorType;        // 0: Unipolar 1:BiPolar
-            uint16_t faultMask;
-            char     out1[11];
-            char     out2[11];
-            char     out3[11];
-            char     out4[11];
-            char     dew1[11];
-            char     dew2[11];
-            char     var[11];
-            char     mp[11];
-            char     usb1[11];
-            char     usb2[11];
-            char     usb3[11];
-            char     usb4[11];
-            char     usb5[11];
-            char     usb6[11];
+            //uint16_t faultMask;
 } PowerStarProfile;
 
 class PSCTL
@@ -90,8 +71,8 @@ class PSCTL
                    PS_GET_BACKLASH = 0x33,
                    PS_SET_HYS = 0x34,
                    PS_GET_HYS = 0x35,
-                   PS_SET_TMPCO = 0x36,
-                   PS_GET_TMPCO = 0x37,
+                   PS_SET_TMPCOEF = 0x36,
+                   PS_GET_TMPCOEF = 0x37,
                    PS_SET_TCOMP = 0x38,
                    PS_GET_TCOMP = 0x39,
                    PS_SET_MTRCUR = 0x3a,
@@ -189,7 +170,7 @@ class PSCTL
         bool     setMultiPort(uint8_t MPtype);
         bool     saveDewPwmFault(PowerStarProfile psProfile);
         
-        bool     activateProfile(PowerStarProfile psProfile);
+        bool     setProfileStatus(PowerStarProfile psProfile);
 
         bool     clearFaults();
         bool     restart();
