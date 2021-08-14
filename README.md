@@ -2,7 +2,7 @@
 INDI driver for Wa_Chu_Ed Power*Star, also known as FeatherTouch Power*Star
 
 DEPENDENCIES:
-- sudo apt install build-essential devscripts debhelper fakeroot cdbs software-properties-common cmake pkg-config apt libhidapi-hidraw0 libhidapi-libusb0 git 
+- sudo apt install build-essential devscripts debhelper fakeroot cdbs software-properties-common cmake pkg-config libhidapi-hidraw0 libhidapi-libusb0 git 
 - sudo add-apt-repository ppa:mutlaqja/ppa 
 - sudo apt install libindi-dev libnova-dev libz-dev libgsl-dev
 
