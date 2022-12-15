@@ -24,7 +24,7 @@ or (linux) system that the Power*Star is plugged into:
 
 - git clone https://github.com/sifank/PowerStar.git
 - cd PowerStar
-- mkdir build; cd bulid
+- mkdir build; cd build
 - cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ../
 - make
 - sudo make install
